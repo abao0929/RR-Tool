@@ -1,0 +1,13 @@
+:host { all: initial; }
+.dock{width:220px;height:220px;display:grid;grid-template-columns:72px 1fr;
+  background:#0f172a;color:#fff;border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.25);overflow:hidden;
+  font:13px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Arial}
+.left{display:flex;align-items:center;justify-content:center;border-right:1px solid rgba(255,255,255,.08)}
+.end{appearance:none;border:0;border-radius:10px;padding:10px 12px;cursor:pointer;font-weight:600;background:#ef4444;color:#fff}
+.right{display:flex;flex-direction:column;min-width:0;min-height:0}
+.title{padding:8px 10px;font-weight:600;opacity:.85;border-bottom:1px solid rgba(255,255,255,.08)}
+.feed{flex:1;overflow:auto;padding:8px;background:#111827}
+.item{padding:6px 8px;border-radius:8px;background:#1f2937;margin-bottom:6px}
+.type{font-weight:600;margin-bottom:6px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.thumb{display:block;width:100%;height:auto;max-height:140px;object-fit:contain;border-radius:6px;background:#000}
+.empty{opacity:.6;padding:8px}

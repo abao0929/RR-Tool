@@ -13,7 +13,6 @@ export interface StepInfo {
     url: string | null;                // 发生操作时的页面 URL
     locators: Locator[] | null;       // 定位信息，从目标元素开始逐级向上
     actionInfo: any | null;        // 与操作相关的额外信息，如 click 的按钮、坐标等
-    screenshotUrl: string | null;  // 截图 URL
 }
 
 export interface ClickInfo {
@@ -22,11 +21,12 @@ export interface ClickInfo {
     offset: { x: number; y: number };// 相对元素左上角的偏移
     pagePoint: { x: number; y: number };// 相对顶层页面的坐标
     elementRect: { // 元素相对顶层页面的矩形
-        x: number; 
-        y: number; 
-        width: number; 
-        height: number 
+        x: number;
+        y: number;
+        width: number;
+        height: number
     };
+    screenshotUrl: string | null;  // 截图 URL
 }
 
 export interface InputInfo {
@@ -34,18 +34,19 @@ export interface InputInfo {
 }
 
 export interface MouseWheelInfo {
+    // direction: 'up' | 'down' | 'left' | 'right';
     deltaX: number,
     deltaY: number,
     scrollX: number,
     scrollY: number,
 }
 
-export type SystemState = 
-    |"idle" 
-    | "recording" 
-    | "recording-pause" 
+export type SystemState =
+    | "idle"
+    | "recording"
+    | "recording-pause"
 
-export type SystemCommand = 
-    |"start-recording" 
-    |"stop-recording" 
-    |"pause-recording" 
+export type SystemCommand =
+    | "start-recording"
+    | "stop-recording"
+    | "pause-recording" 

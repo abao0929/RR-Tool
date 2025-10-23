@@ -7,8 +7,7 @@ import type { CollapseProps } from 'antd';
 import { StepInfo, SystemCommand, SystemState } from '@/src/template';
 import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder } from 'react-icons/fa';
 import { ButtonColorType } from 'antd/es/button';
-
-// type RecEvent = 'START' | 'PAUSE' | 'RESUME' | 'STOP' | 'RETRY' | 'RESET';
+import { StepsProvider, useSteps } from './hooks';
 
 // Record<K, T>生成一个对象映射类型 Partial将K键变为可选
 const primaryByState: Partial<Record<
@@ -18,13 +17,12 @@ const primaryByState: Partial<Record<
     'recording': { label: 'recording', icon: <FaStopCircle />, command: 'stop-recording', color: 'red' },
 };
 
-
-
 function Header() {
     // spState(Sidepanel State)
     const [spState, setSpState] = useState<SystemState>("idle");
     const [busy, setBusy] = useState<Boolean>(false);
     const [tabId, setTabId] = useState<number | null>(null);
+    const { clear } = useSteps();
 
     useEffect(() => {
         (async () => {
@@ -37,11 +35,15 @@ function Header() {
         })()
     })
 
-    // 把状态消息传回background
-    const backToBackground = async (command: SystemCommand) => {
+    
+    const primaryBtnAction = async (command: SystemCommand) => {
         if (busy) return;
         setBusy(true);
+        if (command === 'start-recording') {
+            clear();
+        }
         try {
+            // 把状态消息传回background
             const res = await sendMessage('systemControl', command);
             setSpState(res.state);
             setTabId(res.tabId);
@@ -62,24 +64,35 @@ function Header() {
                 // size="small"
                 color={recorderBtn?.color}
                 icon={recorderBtn?.icon}
-                onClick={() => recorderBtn && backToBackground(recorderBtn.command)}
+                onClick={() => recorderBtn && primaryBtnAction(recorderBtn.command)}
             />
 
         </div>
     )
 }
 
-function StepListItem({ kind, screenshotUrl, locators }: StepInfo) {
+function StepListItem({ kind, actionInfo, locators }: StepInfo) {
     const [isModalOpen, setIsModalOpen] = useState(false);
-
-    const showModal = () => {
-        setIsModalOpen(true);
-    }
-    const handleOk = () => {
-        setIsModalOpen(false);
-    };
-    const handleCancel = () => {
-        setIsModalOpen(false);
+    const showModal = () => setIsModalOpen(true);
+    const handleOk = () => setIsModalOpen(false);
+    const handleCancel = () => setIsModalOpen(false);
+    const renderActionInfo = () => {
+        if (kind === 'click') {
+            return actionInfo.screenshotUrl && (
+                <Image
+                    src={actionInfo.screenshotUrl}
+                    style={{ maxWidth: 200, height: 40, objectFit: 'cover', borderRadius: 4, marginRight: 8 }}
+                />
+            );
+        }
+        if (kind === 'input') {
+            return (
+                <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                    {String(actionInfo?.value ?? '')}
+                </div>
+            );
+        }
+        return null; // 其他 kind 暂不处理
     };
     const panelStyle: CSSProperties = {
         marginBottom: 24,
@@ -133,14 +146,7 @@ function StepListItem({ kind, screenshotUrl, locators }: StepInfo) {
             <Row style={{ padding: 2, width: '100%', height: 40 }}>
                 <Col span={4} onClick={showModal}><FaRegFolder /></Col>
                 <Col span={4}>{kind}</Col>
-                <Col span={16}>{screenshotUrl && (
-                    <Image
-                        src={screenshotUrl}
-                        // alt="screenshot"
-                        style={{ maxWidth: 200, height: 40, objectFit: 'cover', borderRadius: 4, marginRight: 8 }}
-                    />
-                )}
-                </Col>
+                <Col span={16}>{renderActionInfo()}</Col>
             </Row>
             <Modal
                 title="Basic Modal"
@@ -162,22 +168,7 @@ function StepListItem({ kind, screenshotUrl, locators }: StepInfo) {
 }
 
 function StepList() {
-    const [steps, setSteps] = useState<StepInfo[]>([]);
-
-    useEffect(() => {
-        (async () => {
-            onMessage("sendStepToSidepanel", async (msg) => {
-                // console.log("sidepanel receive step:", msg.data.stepInfo);
-                setSteps((prev) => [...prev, msg.data]);
-            })
-        })();
-    }, []);
-
-    const cleanStepList = async () => {
-        setSteps([]);
-        return;
-    }
-
+    const { steps, clear } = useSteps();
     return (
         <div>
             <Button
@@ -185,7 +176,7 @@ function StepList() {
                 variant='text'
                 color='default'
                 icon={<FaTrash />}
-                onClick={() => cleanStepList()}
+                onClick={clear}
             />
             <List
                 dataSource={steps}
@@ -196,8 +187,6 @@ function StepList() {
                 )}
             />
         </div>
-
-
     )
 }
 
@@ -210,4 +199,8 @@ function App() {
     )
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+    <StepsProvider>
+        <App />
+    </StepsProvider>
+);

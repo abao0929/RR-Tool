@@ -39,6 +39,7 @@ export class ElementAction {
             offset,
             pagePoint,
             elementRect,
+            screenshotUrl: null
         }
     }
 

@@ -1,3 +1,5 @@
-# WXT + React
+# RR-Tool
 
-This template should help get you started developing with React in WXT.
+This is my first project developing a browser extension; it’s a tool for automated testing
+
+这是我的第一个浏览器扩展开发项目，它一个用于自动化测试的工具

@@ -68,7 +68,6 @@ export class Screenshot {
         w = Math.max(1, Math.min(viewport.imgW - x, w));
         h = Math.max(1, Math.min(viewport.imgH - y, h));
 
-        // 可选：给边缘加 1px 缓冲，避免边框被截掉
         // x = Math.max(0, x - 1); y = Math.max(0, y - 1);
         // w = Math.min(viewport.imgW - x, w + 2); h = Math.min(viewport.imgH - y, h + 2);
 
@@ -87,10 +86,10 @@ export class Screenshot {
         return `data:image/png;base64,${btoa(bin)}`;
     }
 
-    // 精确截取元素（先截可视区，再裁剪）
+    // 精确截取元素
     async captureElementAccurate(tabId: number, rectCss: { x: number; y: number; width: number; height: number }) {
-        const vp = await this.captureViewport(tabId);           // 先截可视区 + 拿缩放
-        const url = await this.cropByCssRect(vp, rectCss);                 // 再按缩放裁剪
+        const vp = await this.captureViewport(tabId);// 先截可视区 + 拿缩放
+        const url = await this.cropByCssRect(vp, rectCss);// 再按缩放裁剪
         return url;
     }
 

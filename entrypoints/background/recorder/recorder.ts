@@ -12,6 +12,7 @@ export class Recorder {
 
     async startRecording(tabId: number) {
         if (!tabId) return;
+        this.recordingSteps = [];
         try { await chrome.debugger.attach({ tabId }, "1.3"); } catch { }
         try {
             await chrome.scripting.executeScript({
@@ -57,10 +58,16 @@ export class Recorder {
                 const rectCss = stepInfo.locators[0].positionAndSize;
                 const { x, y, width, height } = rectCss;
                 const screenshotUrl = await this.screenshot.captureElementAccurate(tabId, { x, y, width, height });
-                stepInfo.screenshotUrl = screenshotUrl;
+                stepInfo.actionInfo.screenshotUrl = screenshotUrl;
+                this.recordingSteps.push(stepInfo);
                 break;
             case 'input':
-
+                const lastInputAction = this.recordingSteps[this.recordingSteps.length-1];
+                if (lastInputAction && lastInputAction.kind === 'input') {
+                    this.recordingSteps.pop();
+                    this.recordingSteps.push(stepInfo);
+                }
+                else this.recordingSteps.push(stepInfo);
                 break;
             case 'wheel':
 
@@ -72,8 +79,9 @@ export class Recorder {
         //     const screenshotUrl = await this.screenshot.captureElementAccurate(tabId, { x, y, width, height });
         //     stepInfo.screenshotUrl = screenshotUrl;
         // }
-        console.log("[bg] recorder step:", stepInfo);
-        await sendMessage("sendStepToSidepanel", stepInfo);
+        const stepIndex = this.recordingSteps.length - 1;
+        console.log("[bg] recorder step:", stepInfo.kind, stepIndex);
+        await sendMessage("sendStepToSidepanel", { stepInfo, stepIndex });
         return;
     }
 }

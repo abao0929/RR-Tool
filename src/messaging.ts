@@ -15,6 +15,8 @@ export interface ProtocolMap {
   destroyListener(data: {}): {};
 
   getSystemState(data: {}): SystemState;
+    // sidepanel
+  sendStepToSidepanel(data: { stepInfo: StepInfo; stepIndex: number }): void;
 
   // replayer
   "replayer:start": (data: { tabId: number | undefined }) => void | Promise<void>;
@@ -31,8 +33,7 @@ export interface ProtocolMap {
   // all
   "all:destroy": () => void;
 
-  // sidepanel
-  sendStepToSidepanel(data: StepInfo):void;
+
 }
 
 export const { sendMessage, onMessage } = defineExtensionMessaging<ProtocolMap>();

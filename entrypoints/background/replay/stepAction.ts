@@ -37,9 +37,7 @@ export class StepAction {
         const buttonsMask = btn === 2 ? 2 : btn === 1 ? 4 : 1; // Left=1, Right=2, Middle=4
         const count = Math.max(1, clickInfo.count ?? 1);
 
-        await chrome.debugger.sendCommand(t, "Input.dispatchMouseEvent", {
-            type: "mouseMoved", x, y, pointerType: "mouse",
-        });
+        await this.moveMouse(tabId, x, y);
 
         for (let n = 1; n <= count; n++) {
             await chrome.debugger.sendCommand(t, "Input.dispatchMouseEvent", {
@@ -51,5 +49,18 @@ export class StepAction {
                 x, y, button, buttons: 0, clickCount: n, pointerType: "mouse",
             });
         }
+    }
+
+    // 鼠标移动
+    async moveMouse(tabId: number, x: number, y: number) {
+        const t = { tabId };
+        // 发送移动开始的消息？
+
+        // 进行实际移动
+        await chrome.debugger.sendCommand(t, "Input.dispatchMouseEvent", {
+            type: "mouseMoved", x, y, pointerType: "mouse",
+        });
+        
+        // 接收完成移动的消息？
     }
 }

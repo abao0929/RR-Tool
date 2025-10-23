@@ -38,7 +38,6 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: clickInfo,
-                    screenshotUrl: null
                 }
             // 未来可支持更多操作类型
             case 'input':
@@ -51,7 +50,6 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: inputInfo,
-                    screenshotUrl: null
                 }
                 if (lastAction && lastAction.kind === 'input') {
                     this._recording.pop();  // 移除上一个输入步骤
@@ -68,7 +66,6 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: wheelInfo,
-                    screenshotUrl: null
                 }
                 return newWheelStep;
             default:

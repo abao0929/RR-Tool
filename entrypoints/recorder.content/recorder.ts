@@ -52,15 +52,27 @@ export class Recorder {
         await sendMessage("recordingStep", step);
     }
 
+    onKeydown = async (e: KeyboardEvent) => {
+        if (isFromUIEvent(e)) return;
+        const element = this.getEventElement(e);
+        if (!element) return null;
+        const step = this.stepBuilder.buildStep('keydown', e, element);
+        if (!step) return null;
+        console.log("keydown step:", step);
+        await sendMessage("recordingStep", step);
+    }
+
     addListener() {
         window.addEventListener("click", this.onClick, true);
         window.addEventListener("input", this.onInput, true);
         window.addEventListener("wheel", this.onWheel, true);
+        window.addEventListener("keydown", this.onKeydown, true);
     }
 
     removeListener() {
         window.removeEventListener("click", this.onClick, true);
         window.removeEventListener("input", this.onInput, true);
         window.removeEventListener("wheel", this.onWheel, true);
+        window.removeEventListener("keydown", this.onKeydown, true);
     }
 }

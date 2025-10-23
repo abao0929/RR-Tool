@@ -9,9 +9,9 @@ export interface Locator {
 
 export interface StepInfo {
     kind: string | null;               // 操作类型，如 click、input 等
-    ts: number | null;                 // 时间戳
+    ts: number;                 // 时间戳
     url: string | null;                // 发生操作时的页面 URL
-    locators: Locator[] | null;       // 定位信息，从目标元素开始逐级向上
+    locators: Locator[];       // 定位信息，从目标元素开始逐级向上
     actionInfo: any | null;        // 与操作相关的额外信息，如 click 的按钮、坐标等
 }
 
@@ -26,6 +26,7 @@ export interface ClickInfo {
         width: number;
         height: number
     };
+    modifiers: Modifiers;
     screenshotUrl: string | null;  // 截图 URL
 }
 
@@ -34,11 +35,28 @@ export interface InputInfo {
 }
 
 export interface MouseWheelInfo {
-    // direction: 'up' | 'down' | 'left' | 'right';
+    direction: 'up' | 'down' | 'left' | 'right' | 'none';
     deltaX: number,
     deltaY: number,
     scrollX: number,
     scrollY: number,
+    modifiers: Modifiers,
+}
+
+export interface KeydownInfo {
+    key: string;
+    code: string;
+    location: number;
+    repeat: boolean;
+    repeatTime: number | null;
+    isComposing: boolean;
+}
+
+export interface Modifiers {
+    shift: boolean;
+    ctrl: boolean;
+    alt: boolean;
+    meta: boolean;
 }
 
 export type SystemState =

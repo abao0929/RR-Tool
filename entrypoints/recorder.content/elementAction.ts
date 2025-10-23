@@ -1,24 +1,53 @@
-import { ClickInfo, InputInfo, MouseWheelInfo, StepInfo } from "../../src/template.js";
-
-// export interface ClickInfo {
-//     button: number;
-//     count: number;
-//     offset: { x: number; y: number };
-//     // target: Element;
-// }
+import { ClickInfo, InputInfo, KeydownInfo, MouseWheelInfo, StepInfo } from "../../src/template.js";
 
 export class ElementAction {
-
-    getWheelInfo(e: WheelEvent, lastAction: StepInfo): MouseWheelInfo {
+    getKeydownInfo(e: KeyboardEvent): KeydownInfo {
         return {
-            deltaX: e.deltaX,
-            deltaY: e.deltaY,
+            key: e.key,
+            code: e.code,
+            location: e.location,
+            repeat: e.repeat,
+            repeatTime: null,
+            isComposing: e.isComposing
+        }
+    }
+
+    getWheelInfo(e: WheelEvent): MouseWheelInfo {
+        const deltaX = e.deltaX;
+        const deltaY = e.deltaY;
+        let direction: 'up' | 'down' | 'left' | 'right' | 'none' = 'none';
+        if (deltaX === 0) {
+            if (deltaY > 0) {
+                direction = 'down';
+            }
+            if (deltaY < 0){
+                direction = 'up';
+            }
+        }
+        if (deltaY === 0) {
+            if (deltaX > 0) {
+                direction = 'right';
+            }
+            if (deltaX < 0) {
+                direction = 'left'
+            }
+        }
+        return {
+            direction,
+            deltaX,
+            deltaY,
             scrollX: window.scrollX,
             scrollY: window.scrollY,
+            modifiers: {
+                shift: e.shiftKey,
+                ctrl: e.ctrlKey,
+                alt: e.altKey,
+                meta: e.metaKey,
+            }
         };
     }
 
-    getInputInfo(e: InputEvent, lastAction: StepInfo): InputInfo{
+    getInputInfo(e: InputEvent): InputInfo{
         const target = e.target as HTMLInputElement;
         return {
             value: target?.value
@@ -39,6 +68,12 @@ export class ElementAction {
             offset,
             pagePoint,
             elementRect,
+            modifiers: {
+                shift: e.shiftKey,
+                ctrl: e.ctrlKey,
+                alt: e.altKey,
+                meta: e.metaKey,
+            },
             screenshotUrl: null
         }
     }

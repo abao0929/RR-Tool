@@ -19,11 +19,8 @@ export interface ProtocolMap {
   sendStepToSidepanel(data: { stepInfo: StepInfo; stepIndex: number }): void;
 
   // replayer
-  "replayer:start": (data: { tabId: number | undefined }) => void | Promise<void>;
-  "replayer:finish": (data: { tabId: number | undefined }) => void | Promise<void>;
-  "replayer:step": (data: { stepInfo: StepInfo; index: number }) => void | Promise<void>;
 
-  // highlight
+  // highlighter
   "highlighter:teardown": (data: {}) => void | Promise<void>;
 
   // ui

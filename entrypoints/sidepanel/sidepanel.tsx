@@ -4,8 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { onMessage, sendMessage } from '@/src/messaging';
 import { Button, Space, List, Image, Modal, Collapse, Col, Row } from 'antd';
 import type { CollapseProps } from 'antd';
-import { StepInfo, SystemCommand, SystemState } from '@/src/template';
-import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder } from 'react-icons/fa';
+import { StepInfo, SystemCommand, SystemState, Modifiers } from '@/src/template';
+import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder, FaKeyboard } from 'react-icons/fa';
 import { ButtonColorType } from 'antd/es/button';
 import { StepsProvider, useSteps } from './hooks';
 
@@ -52,8 +52,6 @@ function Header() {
         }
     }
 
-
-
     const recorderBtn = primaryByState[spState];
 
     return (
@@ -76,9 +74,20 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
     const showModal = () => setIsModalOpen(true);
     const handleOk = () => setIsModalOpen(false);
     const handleCancel = () => setIsModalOpen(false);
+    const modifierIcon = (modifiers: Modifiers) => {
+        const { ctrl, shift, alt } = modifiers;
+        return (
+            <>
+                {ctrl && <span><FaKeyboard />Ctrl</span>}
+                {shift && <span><FaKeyboard />Shift</span>}
+                {alt && <span><FaKeyboard />Alt</span>}
+            </>
+        );
+    }
     const renderActionInfo = () => {
+        // console.log('kind:', kind, 'actionInfo:', actionInfo);
         if (kind === 'click') {
-            return actionInfo.screenshotUrl && (
+            return actionInfo?.screenshotUrl && (
                 <Image
                     src={actionInfo.screenshotUrl}
                     style={{ maxWidth: 200, height: 40, objectFit: 'cover', borderRadius: 4, marginRight: 8 }}
@@ -88,19 +97,32 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
         if (kind === 'input') {
             return (
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-                    {String(actionInfo?.value ?? '')}
+                    Value: {String(actionInfo?.value ?? '')}
                 </div>
             );
         }
-        return null; // 其他 kind 暂不处理
+        if (kind === 'wheel') {
+            return actionInfo && (
+                <div>
+                    方向: {actionInfo.direction}, X偏移: {actionInfo.deltaX}, Y偏移: {actionInfo.deltaY}  {modifierIcon(actionInfo.modifiers)}
+                </div>
+            );
+        }
+        if (kind === 'keydown') {
+            return actionInfo && (
+                <div>
+                    <FaKeyboard />{actionInfo.key}
+                </div>
+            );
+        }
+        return null;
     };
     const panelStyle: CSSProperties = {
         marginBottom: 24,
-        // height: 40,
         border: 'none',
     };
 
-    if (!locators || locators.length === 0) return null;
+    // if (!locators || locators.length === 0) return null;
 
     const items = locators.map((locator, idx) => ({
         key: String(idx),
@@ -144,9 +166,9 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
     return (
         <>
             <Row style={{ padding: 2, width: '100%', height: 40 }}>
-                <Col span={4} onClick={showModal}><FaRegFolder /></Col>
+                <Col span={2} onClick={showModal}><FaRegFolder /></Col>
                 <Col span={4}>{kind}</Col>
-                <Col span={16}>{renderActionInfo()}</Col>
+                <Col span={18}>{renderActionInfo()}</Col>
             </Row>
             <Modal
                 title="Basic Modal"

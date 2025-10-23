@@ -22,11 +22,11 @@ export class StepBuilder {
     // constructor(private readonly selector = new ElementSelector()) { }
     private readonly action = new ElementAction();     // 复用实例
     private readonly selector = new ElementSelector();  // 复用实例
-    private _recording: StepInfo[] = [];
+    // private _recording: StepInfo[] = [];
 
     public buildStep(type: string, event: Event, element?: Element): StepInfo | null {
         let locators: Locator[];
-        const lastAction = this._recording[this._recording.length - 1];
+        // const lastAction = this._recording[this._recording.length - 1];
         switch (type) {
             case 'click':
                 if (!this.isMouseEvent(event)) return null;
@@ -42,7 +42,7 @@ export class StepBuilder {
             // 未来可支持更多操作类型
             case 'input':
                 if (!this.isInputEvent(event)) return null;
-                let inputInfo = this.action.getInputInfo(event, lastAction);
+                let inputInfo = this.action.getInputInfo(event);
                 locators = this.LocatorBuilder(element ?? null);
                 const newInputStep: StepInfo = {
                     kind: 'input',
@@ -51,14 +51,14 @@ export class StepBuilder {
                     locators,
                     actionInfo: inputInfo,
                 }
-                if (lastAction && lastAction.kind === 'input') {
-                    this._recording.pop();  // 移除上一个输入步骤
-                    this._recording.push(newInputStep); // 添加新的输入步骤
-                }
+                // if (lastAction && lastAction.kind === 'input') {
+                //     this._recording.pop();  // 移除上一个输入步骤
+                //     this._recording.push(newInputStep); // 添加新的输入步骤
+                // }
                 return newInputStep;
             case 'wheel':
                 if (!this.isWheelEvent(event)) return null;
-                let wheelInfo = this.action.getWheelInfo(event, lastAction);
+                let wheelInfo = this.action.getWheelInfo(event);
                 locators = this.LocatorBuilder(element ?? null);
                 const newWheelStep: StepInfo = {
                     kind: 'wheel',
@@ -68,6 +68,19 @@ export class StepBuilder {
                     actionInfo: wheelInfo,
                 }
                 return newWheelStep;
+
+            case 'keydown':
+                if (!this.isKeydownEvent(event)) return null;
+                let keydownInfo = this.action.getKeydownInfo(event);
+                locators = [];
+                const newKeydownStep: StepInfo = {
+                    kind: 'keydown',
+                    ts: Date.now(),
+                    url: window.location.href,
+                    locators,
+                    actionInfo: keydownInfo,
+                }
+                return newKeydownStep;
             default:
                 return null;
         }
@@ -81,6 +94,9 @@ export class StepBuilder {
     }
     isWheelEvent(event: Event): event is WheelEvent {
         return event instanceof WheelEvent;
+    }
+    isKeydownEvent(event: Event): event is KeyboardEvent {
+        return event instanceof KeyboardEvent;
     }
     /**
      * 从当前 element 开始，逐级向上收集定位信息，

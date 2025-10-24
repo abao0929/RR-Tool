@@ -10,26 +10,6 @@ export class Recorder {
         this.recordingSteps = [];
     }
 
-    handlers = {
-        onUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) {
-            console.log("tab updated:", tabId);
-        },
-
-        onCreated(tab: chrome.tabs.Tab) {
-            console.log("tab created:", tab.id);
-        }
-    }
-
-    async attachChromeListener() {
-        chrome.tabs.onUpdated.addListener(this.handlers.onUpdated);
-        chrome.tabs.onCreated.addListener(this.handlers.onCreated);
-    }
-
-    async detachChromeListener() {
-        chrome.tabs.onUpdated.removeListener(this.handlers.onUpdated);
-        chrome.tabs.onCreated.removeListener(this.handlers.onCreated);
-    }
-
     async startRecording(tabId: number) {
         if (!tabId) return;
         this.recordingSteps = [];
@@ -40,7 +20,7 @@ export class Recorder {
                 target: { tabId, allFrames: false },
                 files: [
                     "content-scripts/recorder.js",
-                    "content-scripts/highlighter.js",
+                    // "content-scripts/highlighter.js",
                     // "content-scripts/ui.js",
                 ],
             });
@@ -56,8 +36,8 @@ export class Recorder {
         if (!tabId) return;
         console.log("[bg-recorder] recorder finished:", tabId);
         if (tabId == null) return { ok: true };
-        await sendMessage("destroyListener", {}, tabId);
-        await sendMessage("highlighter:teardown", {}, tabId);
+        await sendMessage("removeListener", {}, tabId);
+        // await sendMessage("highlighter:teardown", {}, tabId);
         try {
             await chrome.debugger.detach({ tabId });
         } catch (e) {
@@ -163,6 +143,59 @@ export class Recorder {
         }
         return;
     }
+
+    async attachChromeListener() {
+        chrome.tabs.onUpdated.addListener(this.handlers.onUpdated);
+        chrome.tabs.onCreated.addListener(this.handlers.onCreated);
+    }
+
+    async detachChromeListener() {
+        chrome.tabs.onUpdated.removeListener(this.handlers.onUpdated);
+        chrome.tabs.onCreated.removeListener(this.handlers.onCreated);
+    }
+    handlers = {
+        async onUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) {
+            if (!tabId) return;
+            // await sendMessage("destroyListener", {}, tabId);
+            // await sendMessage("highlighter:teardown", {}, tabId);
+            console.log("tab updated:", tabId);
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId, allFrames: false },
+                    files: [
+                        "content-scripts/recorder.js",
+                        // "content-scripts/highlighter.js",
+                        // "content-scripts/ui.js",
+                    ],
+                });
+            } catch (e) {
+                console.error("executeScript failed:", e);
+                return;
+            }
+        },
+
+        async onCreated(tab: chrome.tabs.Tab) {
+            if (!tab.id) return;
+            // await sendMessage("destroyListener", {}, tab.id);
+            // await sendMessage("highlighter:teardown", {}, tab.id);
+            console.log("tab created:", tab.id);
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id, allFrames: false },
+                    files: [
+                        "content-scripts/recorder.js",
+                        // "content-scripts/highlighter.js",
+                        // "content-scripts/ui.js",
+                    ],
+                });
+            } catch (e) {
+                console.error("executeScript failed:", e);
+                return;
+            }
+        }
+    }
+
+
 }
 
 export default Recorder;

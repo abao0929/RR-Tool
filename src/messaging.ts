@@ -12,7 +12,9 @@ export interface ProtocolMap {
   finishRecording(data: {}): { ok: boolean; tabId: number | null; state: string };
   recordingStep(data: StepInfo): {}
   
-  destroyListener(data: {}): {};
+  pingRecorder(data: {}): { ok: boolean };
+  addListener(data: {}): {};
+  removeListener(data: {}): {};
 
   getSystemState(data: {}): SystemState;
     // sidepanel

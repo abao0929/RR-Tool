@@ -93,16 +93,21 @@ function StepListItem(stepInfo: StepInfo) {
         // console.log('kind:', kind, 'actionInfo:', actionInfo);
         if (kind === 'click') {
             return actionInfo?.screenshotUrl && (
-                <Image
-                    src={actionInfo.screenshotUrl}
-                    style={{ maxWidth: 200, height: 40, objectFit: 'cover', borderRadius: 4, marginRight: 8 }}
-                />
+                <>
+                    <Image
+                        src={actionInfo.screenshotUrl}
+                        style={{ maxWidth: 200, height: 40, objectFit: 'cover', borderRadius: 4, marginRight: 8 }}
+                    />
+                    <FaRegFolder onClick={() => showModal(stepInfo.locators)} />
+                </>
+
             );
         }
         if (kind === 'input') {
             return (
                 <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                     Value: {String(actionInfo?.value ?? '')}
+                    <FaRegFolder onClick={() => showModal(stepInfo.locators)} />
                 </div>
             );
         }
@@ -181,7 +186,7 @@ function StepListItem(stepInfo: StepInfo) {
     return (
         <>
             <Row style={{ padding: 2, width: '100%', height: 40 }}>
-                <Col span={2} onClick={() => showModal(stepInfo.locators)}><FaRegFolder /></Col>
+                <Col span={2}></Col>
                 <Col span={4}>{kind}</Col>
                 <Col span={18}>{renderActionInfo()}</Col>
             </Row>

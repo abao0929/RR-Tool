@@ -1,6 +1,29 @@
-import { ClickInfo, InputInfo, KeydownInfo, MouseWheelInfo, StepInfo } from "../../src/template.js";
+import { ImStarEmpty } from "react-icons/im";
+import { ClickInfo, InputInfo, KeydownInfo, MouseWheelInfo, StepInfo, DragInfo } from "../../src/template.js";
 
 export class ElementAction {
+    getDropInfo(e: DragEvent): DragInfo | null {
+        const endX = e.clientX;
+        const endY = e.clientY;
+        return {
+            startPoint: { x: null, y: null },
+            endPoint: { x: endX, y: endY },
+            startLocators: null,
+            endLocators: null,
+        } 
+    }
+
+    getDragStartInfo(e: DragEvent): DragInfo | null {
+        const startX = e.clientX;
+        const startY = e.clientY;
+        return {
+            startPoint: { x: startX, y: startY },
+            endPoint: { x: null, y: null },
+            startLocators: null,
+            endLocators: null,
+        }
+    }
+
     getKeydownInfo(e: KeyboardEvent): KeydownInfo {
         return {
             key: e.key,

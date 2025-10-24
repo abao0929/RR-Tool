@@ -16,7 +16,7 @@ export interface ProtocolMap {
 
   getSystemState(data: {}): SystemState;
     // sidepanel
-  sendStepToSidepanel(data: { stepInfo: StepInfo; stepIndex: number }): void;
+  sendStepToSidepanel(data: { stepInfo: StepInfo; stepIndex: number }): number;
 
   // replayer
 

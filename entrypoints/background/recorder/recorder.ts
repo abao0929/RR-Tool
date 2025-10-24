@@ -10,9 +10,30 @@ export class Recorder {
         this.recordingSteps = [];
     }
 
+    handlers = {
+        onUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) {
+            console.log("tab updated:", tabId);
+        },
+
+        onCreated(tab: chrome.tabs.Tab) {
+            console.log("tab created:", tab.id);
+        }
+    }
+
+    async attachChromeListener() {
+        chrome.tabs.onUpdated.addListener(this.handlers.onUpdated);
+        chrome.tabs.onCreated.addListener(this.handlers.onCreated);
+    }
+
+    async detachChromeListener() {
+        chrome.tabs.onUpdated.removeListener(this.handlers.onUpdated);
+        chrome.tabs.onCreated.removeListener(this.handlers.onCreated);
+    }
+
     async startRecording(tabId: number) {
         if (!tabId) return;
         this.recordingSteps = [];
+        await this.attachChromeListener()
         try { await chrome.debugger.attach({ tabId }, "1.3"); } catch { }
         try {
             await chrome.scripting.executeScript({
@@ -28,6 +49,7 @@ export class Recorder {
             return;
         }
         console.log("[bg-recorder] recorder start:", tabId);
+
     }
 
     async finishRecording(tabId: number) {
@@ -41,6 +63,7 @@ export class Recorder {
         } catch (e) {
             console.error("detach failed:", e);
         }
+        this.detachChromeListener();
         return { ok: true };
     }
 
@@ -59,16 +82,18 @@ export class Recorder {
                 const { x, y, width, height } = rectCss;
                 const screenshotUrl = await this.screenshot.captureElementAccurate(tabId, { x, y, width, height });
                 stepInfo.actionInfo.screenshotUrl = screenshotUrl;
-                // this.recordingSteps.push(stepInfo);
+                this.recordingSteps.push(stepInfo);
                 break;
+
             case 'input':
                 const lastInputAction = this.recordingSteps[this.recordingSteps.length - 1];
                 if (lastInputAction && lastInputAction.kind === 'input') {
                     this.recordingSteps.pop();
                     // this.recordingSteps.push(stepInfo);
                 }
-                // else this.recordingSteps.push(stepInfo);
+                this.recordingSteps.push(stepInfo);
                 break;
+
             case 'wheel':
                 if (stepInfo.actionInfo.direction === 'none') return;
                 const lastWheelAction = this.recordingSteps[this.recordingSteps.length - 1];
@@ -84,8 +109,9 @@ export class Recorder {
                     this.recordingSteps.pop();
                     // this.recordingSteps.push(stepInfo);
                 }
-                // else this.recordingSteps.push(stepInfo);
+                this.recordingSteps.push(stepInfo);
                 break;
+
             case 'keydown':
                 if (this.recordingSteps[this.recordingSteps.length - 1].kind === 'input') return;
                 const lastKeydownAction = this.recordingSteps[this.recordingSteps.length - 1];
@@ -97,14 +123,44 @@ export class Recorder {
                     this.recordingSteps.pop();
                     // this.recordingSteps.push(stepInfo);
                 }
+                this.recordingSteps.push(stepInfo);
                 break;
+
+            case 'dragstart':
+                const lastDragStartStep = this.recordingSteps[this.recordingSteps.length - 1];
+                if (lastDragStartStep && lastDragStartStep.kind === 'dragstart') {
+                    // 替换旧dragstart事件
+                    this.recordingSteps.pop();
+                    this.recordingSteps.push(stepInfo);
+                }
+                else this.recordingSteps.push(stepInfo);
+                break;
+
+            case 'drop':
+                if (this.recordingSteps[this.recordingSteps.length - 1].kind !== 'dragstart') {
+                    console.warn("drop without dragstart");
+                    return;
+                }
+                const dragstartStep = this.recordingSteps[this.recordingSteps.length - 1];
+                if (dragstartStep) {
+                    stepInfo.kind = 'drag';
+                    stepInfo.actionInfo.startPoint = dragstartStep.actionInfo.startPoint;
+                    stepInfo.actionInfo.startLocators = dragstartStep.actionInfo.startLocators;
+                    this.recordingSteps.pop();
+                }
+                this.recordingSteps.push(stepInfo);
+                break;
+
             default:
                 break;
         }
-        this.recordingSteps.push(stepInfo);
+        // this.recordingSteps.push(stepInfo);
         const stepIndex = this.recordingSteps.length - 1;
-        console.log("[bg] recorder step:", stepInfo.kind, stepIndex);
-        await sendMessage("sendStepToSidepanel", { stepInfo, stepIndex });
+        console.log("[bg] recorder step:", stepInfo, stepIndex);
+        const sidepanelStepsLength = await sendMessage("sendStepToSidepanel", { stepInfo, stepIndex });
+        if (sidepanelStepsLength !== this.recordingSteps.length) {
+            console.warn("sidepanel steps length mismatch:", sidepanelStepsLength, this.recordingSteps.length);
+        }
         return;
     }
 }

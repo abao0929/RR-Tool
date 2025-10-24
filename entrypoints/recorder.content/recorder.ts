@@ -62,11 +62,31 @@ export class Recorder {
         await sendMessage("recordingStep", step);
     }
 
+    onDrag = async (e: DragEvent) => {
+        if (isFromUIEvent(e)) return;
+        const element = this.getEventElement(e);
+        if (!element) return null;
+        if (e.type === 'dragstart') {
+            const step = this.stepBuilder.buildStep('dragstart', e, element);
+            if (!step) return null;
+            console.log("dragstart step:", step);
+            await sendMessage("recordingStep", step);
+        }
+        if (e.type === 'drop') {
+            const step = this.stepBuilder.buildStep('drop', e, element);
+            if (!step) return null;
+            console.log("drop step:", step);
+            await sendMessage("recordingStep", step);
+        }
+    }
+
     addListener() {
         window.addEventListener("click", this.onClick, true);
         window.addEventListener("input", this.onInput, true);
         window.addEventListener("wheel", this.onWheel, true);
         window.addEventListener("keydown", this.onKeydown, true);
+        window.addEventListener("dragstart", this.onDrag, true);
+        window.addEventListener("drop", this.onDrag, true);
     }
 
     removeListener() {
@@ -74,5 +94,7 @@ export class Recorder {
         window.removeEventListener("input", this.onInput, true);
         window.removeEventListener("wheel", this.onWheel, true);
         window.removeEventListener("keydown", this.onKeydown, true);
+        window.removeEventListener("dragstart", this.onDrag, true);
+        window.removeEventListener("drop", this.onDrag, true);
     }
 }

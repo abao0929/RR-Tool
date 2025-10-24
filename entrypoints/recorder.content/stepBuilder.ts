@@ -2,31 +2,12 @@ import { ElementSelector } from "./elementSelector";
 import { ElementAction } from "./elementAction";
 import { StepInfo, Locator } from "@/src/template";
 
-// export interface Locators {
-//     id: string | null;
-//     tag: string | null;
-//     classes: string[];
-//     text: string | null;
-//     attributes: Array<{ name: string; value: string }>;
-// }
-
-// export interface stepInfo {
-//     kind: string | null;               // 操作类型，如 click、input 等
-//     ts: number | null;                 // 时间戳
-//     url: string | null;                // 发生操作时的页面 URL
-//     locators: Locators[] | null;       // 定位信息，从目标元素开始逐级向上
-//     actionInfo: any | null;        // 与操作相关的额外信息，如 click 的按钮、坐标等
-// }
-
 export class StepBuilder {
-    // constructor(private readonly selector = new ElementSelector()) { }
     private readonly action = new ElementAction();     // 复用实例
     private readonly selector = new ElementSelector();  // 复用实例
-    // private _recording: StepInfo[] = [];
 
     public buildStep(type: string, event: Event, element?: Element): StepInfo | null {
         let locators: Locator[];
-        // const lastAction = this._recording[this._recording.length - 1];
         switch (type) {
             case 'click':
                 if (!this.isMouseEvent(event)) return null;
@@ -51,10 +32,7 @@ export class StepBuilder {
                     locators,
                     actionInfo: inputInfo,
                 }
-                // if (lastAction && lastAction.kind === 'input') {
-                //     this._recording.pop();  // 移除上一个输入步骤
-                //     this._recording.push(newInputStep); // 添加新的输入步骤
-                // }
+
                 return newInputStep;
             case 'wheel':
                 if (!this.isWheelEvent(event)) return null;
@@ -81,6 +59,36 @@ export class StepBuilder {
                     actionInfo: keydownInfo,
                 }
                 return newKeydownStep;
+
+            case 'dragstart':
+                if (!this.isDragStartEvent(event)) return null;
+                let dragStartInfo = this.action.getDragStartInfo(event);
+                locators = [];
+                const startLocators = this.LocatorBuilder(element ?? null);
+                if(dragStartInfo) dragStartInfo.startLocators = startLocators;
+                const newDragStartStep: StepInfo = {
+                    kind: 'dragstart',
+                    ts: Date.now(),
+                    url: window.location.href,
+                    locators,
+                    actionInfo: dragStartInfo,
+                }
+                return newDragStartStep;
+
+            case 'drop':
+                if (!this.isDropEvent(event)) return null;
+                let dropInfo = this.action.getDropInfo(event);
+                locators = [];
+                const endLocators = this.LocatorBuilder(element ?? null);
+                if(dropInfo) dropInfo.endLocators = endLocators;
+                const newDropStep: StepInfo = {
+                    kind: 'drop',
+                    ts: Date.now(),
+                    url: window.location.href,
+                    locators,
+                    actionInfo: dropInfo,
+                }
+                return newDropStep;
             default:
                 return null;
         }
@@ -97,6 +105,12 @@ export class StepBuilder {
     }
     isKeydownEvent(event: Event): event is KeyboardEvent {
         return event instanceof KeyboardEvent;
+    }
+    isDragStartEvent(event: Event): event is DragEvent {
+        return event instanceof DragEvent && event.type === 'dragstart';
+    }
+    isDropEvent(event: Event): event is DragEvent {
+        return event instanceof DragEvent && event.type === 'drop';
     }
     /**
      * 从当前 element 开始，逐级向上收集定位信息，

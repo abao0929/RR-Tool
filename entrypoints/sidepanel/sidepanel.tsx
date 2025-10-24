@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { onMessage, sendMessage } from '@/src/messaging';
 import { Button, Space, List, Image, Modal, Collapse, Col, Row } from 'antd';
 import type { CollapseProps } from 'antd';
-import { StepInfo, SystemCommand, SystemState, Modifiers } from '@/src/template';
+import { StepInfo, SystemCommand, SystemState, Modifiers, Locator } from '@/src/template';
 import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder, FaKeyboard } from 'react-icons/fa';
 import { ButtonColorType } from 'antd/es/button';
 import { StepsProvider, useSteps } from './hooks';
@@ -35,7 +35,7 @@ function Header() {
         })()
     })
 
-    
+
     const primaryBtnAction = async (command: SystemCommand) => {
         if (busy) return;
         setBusy(true);
@@ -69,9 +69,14 @@ function Header() {
     )
 }
 
-function StepListItem({ kind, actionInfo, locators }: StepInfo) {
+function StepListItem(stepInfo: StepInfo) {
+    const { kind, actionInfo } = stepInfo;
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const showModal = () => setIsModalOpen(true);
+    const [showLocators, setShowLocators] = useState<Locator[]>([]);
+    const showModal = (locators: Locator[]) => {
+        setShowLocators(locators);
+        setIsModalOpen(true);
+    };
     const handleOk = () => setIsModalOpen(false);
     const handleCancel = () => setIsModalOpen(false);
     const modifierIcon = (modifiers: Modifiers) => {
@@ -115,6 +120,14 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
                 </div>
             );
         }
+        if (kind === 'drag') {
+            return actionInfo && (
+                <div>
+                    start X:{actionInfo.startPoint.x} Y:{actionInfo.startPoint.y} <FaRegFolder onClick={() => showModal(actionInfo.startLocators)} /><br />
+                    end X:{actionInfo.endPoint.x} Y:{actionInfo.endPoint.y} <FaRegFolder onClick={() => showModal(actionInfo.endLocators)} />
+                </div>
+            )
+        }
         return null;
     };
     const panelStyle: CSSProperties = {
@@ -124,49 +137,51 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
 
     // if (!locators || locators.length === 0) return null;
 
-    const items = locators.map((locator, idx) => ({
-        key: String(idx),
-        label: `parent-${idx}`,
-        children: (
-            <div>
-                {locator.id && <div><b>ID:</b> {locator.id}</div>}
-                {locator.tag && <div><b>tag:</b> {locator.tag}</div>}
-                {locator.classes && locator.classes.length > 0 && (
-                    <div>
-                        {locator.classes.map((className, i) => (
-                            <li key={i}><b>class-{i}</b>: {className}</li>
-                        ))}
-                    </div>
-                )}
-                {locator.text && <div><b>text:</b> {locator.text}</div>}
-                {locator.attributes && locator.attributes.length > 0 && (
-                    <div>
-                        {locator.attributes.map((attr, i) => (
-                            <li key={i}><b>{attr.name}</b>: {attr.value}</li>
-                        ))}
-                    </div>
-                )}
-                {locator.positionAndSize && (
-                    <div>
+    const items = (locators: Locator[]) => {
+        return locators.map((locator, idx) => ({
+            key: String(idx),
+            label: `parent-${idx}`,
+            children: (
+                <div>
+                    {locator.id && <div><b>ID:</b> {locator.id}</div>}
+                    {locator.tag && <div><b>tag:</b> {locator.tag}</div>}
+                    {locator.classes && locator.classes.length > 0 && (
                         <div>
-                            <b>Position:</b>
-                            {`x: ${locator.positionAndSize.x}, y: ${locator.positionAndSize.y}`}
+                            {locator.classes.map((className, i) => (
+                                <li key={i}><b>class-{i}</b>: {className}</li>
+                            ))}
                         </div>
+                    )}
+                    {locator.text && <div><b>text:</b> {locator.text}</div>}
+                    {locator.attributes && locator.attributes.length > 0 && (
                         <div>
-                            <b>Size:</b>
-                            {`width: ${locator.positionAndSize.width}, height: ${locator.positionAndSize.height}`}
+                            {locator.attributes.map((attr, i) => (
+                                <li key={i}><b>{attr.name}</b>: {attr.value}</li>
+                            ))}
                         </div>
-                    </div>
+                    )}
+                    {locator.positionAndSize && (
+                        <div>
+                            <div>
+                                <b>Position:</b>
+                                {`x: ${locator.positionAndSize.x}, y: ${locator.positionAndSize.y}`}
+                            </div>
+                            <div>
+                                <b>Size:</b>
+                                {`width: ${locator.positionAndSize.width}, height: ${locator.positionAndSize.height}`}
+                            </div>
+                        </div>
 
-                )}
-            </div>
-        ),
-        style: panelStyle,
-    }));
+                    )}
+                </div>
+            ),
+            style: panelStyle,
+        }));
+    }
     return (
         <>
             <Row style={{ padding: 2, width: '100%', height: 40 }}>
-                <Col span={2} onClick={showModal}><FaRegFolder /></Col>
+                <Col span={2} onClick={() => showModal(stepInfo.locators)}><FaRegFolder /></Col>
                 <Col span={4}>{kind}</Col>
                 <Col span={18}>{renderActionInfo()}</Col>
             </Row>
@@ -182,7 +197,7 @@ function StepListItem({ kind, actionInfo, locators }: StepInfo) {
                     bordered={false}
                     defaultActiveKey={['0']}
                     // expandIcon={({ isActive }) => <CaretRightOutlined rotate={isActive ? 90 : 0} />}
-                    items={items}
+                    items={items(showLocators)}
                 />
             </Modal>
         </>

@@ -48,6 +48,7 @@ export function StepsProvider({ children }: { children: React.ReactNode }) {
     const off = onMessage('sendStepToSidepanel', (msg) => {
       const { stepIndex, stepInfo } = msg.data as UpsertPayload;
       upsertByIndex(stepIndex, stepInfo);
+      return steps.length;
     });
     return () => { if (typeof off === 'function') off(); };
   }, [upsertByIndex]);

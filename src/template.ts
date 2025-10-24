@@ -52,6 +52,20 @@ export interface KeydownInfo {
     isComposing: boolean;
 }
 
+export interface DragInfo {
+    startPoint: { 
+        x: number | null; 
+        y: number | null 
+    };
+    endPoint: { 
+        x: number | null; 
+        y: number | null 
+    };
+    startLocators: Locator[] | null;
+    endLocators: Locator[] | null;
+
+}
+
 export interface Modifiers {
     shift: boolean;
     ctrl: boolean;

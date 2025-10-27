@@ -87,6 +87,7 @@ export class Recorder {
         window.addEventListener("keydown", this.onKeydown, true);
         window.addEventListener("dragstart", this.onDrag, true);
         window.addEventListener("drop", this.onDrag, true);
+        console.log("[cs] Listener added");
     }
 
     removeListener() {
@@ -96,5 +97,6 @@ export class Recorder {
         window.removeEventListener("keydown", this.onKeydown, true);
         window.removeEventListener("dragstart", this.onDrag, true);
         window.removeEventListener("drop", this.onDrag, true);
+        console.log("[cs] Listener removed");
     }
 }

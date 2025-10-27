@@ -36,15 +36,15 @@ export default defineBackground(() => {
 
             case "stop-recording":
                 // 结束录制
-                if (recordingTabId) recorder.finishRecording(recordingTabId);
+                if (recordingTabId) recorder.finishRecording();
                 // 更新state状态为：空闲
                 bkState = 'idle';
                 break;
 
-            case "pause-recording":
-                if (recordingTabId) recorder.finishRecording(recordingTabId);
-                bkState = 'recording-pause';
-                break;
+            // case "pause-recording":
+            //     if (recordingTabId) recorder.finishRecording(recordingTabId);
+            //     bkState = 'recording-pause';
+            //     break;
 
         }
         return { tabId: recordingTabId, state: bkState };

@@ -1,49 +1,49 @@
 import { Screenshot } from "./screenshot";
 import { onMessage, sendMessage } from "@/src/messaging";
 import { StepInfo } from "@/src/template";
+import { ChromeManager } from "../chromeManager";
 
 export class Recorder {
     screenshot: Screenshot;
     recordingSteps: StepInfo[];
+    chromeManager: ChromeManager;
     constructor() {
         this.screenshot = new Screenshot();
         this.recordingSteps = [];
+        this.chromeManager = new ChromeManager();
     }
 
     async startRecording(tabId: number) {
         if (!tabId) return;
         this.recordingSteps = [];
-        await this.attachChromeListener()
-        try { await chrome.debugger.attach({ tabId }, "1.3"); } catch { }
-        try {
-            await chrome.scripting.executeScript({
-                target: { tabId, allFrames: false },
-                files: [
-                    "content-scripts/recorder.js",
-                    // "content-scripts/highlighter.js",
-                    // "content-scripts/ui.js",
-                ],
-            });
-        } catch (e) {
-            console.error("executeScript failed:", e);
-            return;
-        }
+        
+        // try {
+        //     await chrome.scripting.executeScript({
+        //         target: { tabId, allFrames: false },
+        //         files: [
+        //             "content-scripts/recorder.js",
+        //             // "content-scripts/highlighter.js",
+        //             // "content-scripts/ui.js",
+        //         ],
+        //     });
+        // } catch (e) {
+        //     console.error("executeScript failed:", e);
+        //     return;
+        // }
+        this.chromeManager.recordingInTab(tabId);
+        // this.chromeManager.injectRecorderInWindow("https://www.baidu.com/");
         console.log("[bg-recorder] recorder start:", tabId);
 
     }
 
-    async finishRecording(tabId: number) {
-        if (!tabId) return;
-        console.log("[bg-recorder] recorder finished:", tabId);
-        if (tabId == null) return { ok: true };
-        await sendMessage("removeListener", {}, tabId);
-        // await sendMessage("highlighter:teardown", {}, tabId);
-        try {
-            await chrome.debugger.detach({ tabId });
-        } catch (e) {
-            console.error("detach failed:", e);
-        }
-        this.detachChromeListener();
+    async finishRecording() {
+        // if (!tabId) return;
+        // console.log("[bg-recorder] recorder finished:", tabId);
+        // if (tabId == null) return { ok: true };
+        // await sendMessage("removeListener", {}, tabId);
+
+        this.chromeManager.stopRecordingInTab();
+
         return { ok: true };
     }
 
@@ -143,59 +143,6 @@ export class Recorder {
         }
         return;
     }
-
-    async attachChromeListener() {
-        chrome.tabs.onUpdated.addListener(this.handlers.onUpdated);
-        chrome.tabs.onCreated.addListener(this.handlers.onCreated);
-    }
-
-    async detachChromeListener() {
-        chrome.tabs.onUpdated.removeListener(this.handlers.onUpdated);
-        chrome.tabs.onCreated.removeListener(this.handlers.onCreated);
-    }
-    handlers = {
-        async onUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) {
-            if (!tabId) return;
-            // await sendMessage("destroyListener", {}, tabId);
-            // await sendMessage("highlighter:teardown", {}, tabId);
-            console.log("tab updated:", tabId);
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId, allFrames: false },
-                    files: [
-                        "content-scripts/recorder.js",
-                        // "content-scripts/highlighter.js",
-                        // "content-scripts/ui.js",
-                    ],
-                });
-            } catch (e) {
-                console.error("executeScript failed:", e);
-                return;
-            }
-        },
-
-        async onCreated(tab: chrome.tabs.Tab) {
-            if (!tab.id) return;
-            // await sendMessage("destroyListener", {}, tab.id);
-            // await sendMessage("highlighter:teardown", {}, tab.id);
-            console.log("tab created:", tab.id);
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id, allFrames: false },
-                    files: [
-                        "content-scripts/recorder.js",
-                        // "content-scripts/highlighter.js",
-                        // "content-scripts/ui.js",
-                    ],
-                });
-            } catch (e) {
-                console.error("executeScript failed:", e);
-                return;
-            }
-        }
-    }
-
-
 }
 
 export default Recorder;

@@ -21,7 +21,7 @@ export default defineContentScript({
         isActive = true;
         recorder.addListener();
         highlighter.addHighlighter();
-        console.log("[cs] Listener added");
+        
       }
     });
 
@@ -31,7 +31,6 @@ export default defineContentScript({
         isActive = false;
         recorder.removeListener();
         highlighter.removeHighlighter();
-        console.log("[cs] Listener removed");
       }
     });
   },

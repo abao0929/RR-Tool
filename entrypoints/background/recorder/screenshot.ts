@@ -4,31 +4,36 @@ export class Screenshot {
     async captureViewport(tabId: number) {
         const target = { tabId };
 
-        // 并发拿布局/截图
-        const [layout, shot] = await Promise.all([
-            chrome.debugger.sendCommand(target, "Page.getLayoutMetrics") as any,
-            chrome.debugger.sendCommand(target, "Page.captureScreenshot", {
-                format: "png",
-                fromSurface: true, // 只截可视区域，不传 clip
-            }) as any,
-        ]);
+        try {
+            // 并发拿布局/截图
+            const [layout, shot] = await Promise.all([
+                chrome.debugger.sendCommand(target, "Page.getLayoutMetrics") as any,
+                chrome.debugger.sendCommand(target, "Page.captureScreenshot", {
+                    format: "png",
+                    fromSurface: true, // 只截可视区域，不传 clip
+                }) as any,
+            ]);
 
-        const dataUrl = `data:image/png;base64,${shot.data}`;
+            const dataUrl = `data:image/png;base64,${shot.data}`;
 
-        // 用 ImageBitmap 拿到位图真实像素（设备像素）
-        const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
-        const imgW = bmp.width, imgH = bmp.height;
-        bmp.close?.();
+            // 用 ImageBitmap 拿到位图真实像素（设备像素）
+            const bmp = await createImageBitmap(await (await fetch(dataUrl)).blob());
+            const imgW = bmp.width, imgH = bmp.height;
+            bmp.close?.();
 
-        // 当前 CSS 视口大小（cssVisualViewport 更准确）
-        const vw = Math.round(layout.cssVisualViewport.clientWidth);
-        const vh = Math.round(layout.cssVisualViewport.clientHeight);
+            // 当前 CSS 视口大小（cssVisualViewport 更准确）
+            const vw = Math.round(layout.cssVisualViewport.clientWidth);
+            const vh = Math.round(layout.cssVisualViewport.clientHeight);
 
-        // 计算 DPR/缩放（避免直接用 window.devicePixelRatio；这里以“图片像素 / CSS 像素”为准）
-        const scaleX = imgW / vw;
-        const scaleY = imgH / vh;
+            // 计算 DPR/缩放（避免直接用 window.devicePixelRatio；这里以“图片像素 / CSS 像素”为准）
+            const scaleX = imgW / vw;
+            const scaleY = imgH / vh;
 
-        return { dataUrl, imgW, imgH, vw, vh, scaleX, scaleY };
+            return { dataUrl, imgW, imgH, vw, vh, scaleX, scaleY };
+        } catch (e) {
+            throw new Error(`captureViewport failed: ${e}`);
+        }
+
     }
 
     // 直接截元素区域

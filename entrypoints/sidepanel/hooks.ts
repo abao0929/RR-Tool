@@ -26,16 +26,12 @@ export function StepsProvider({ children }: { children: React.ReactNode }) {
 
   const upsertByIndex = useCallback((stepIndex: number, stepInfo: StepInfo) => {
     setSteps(prev => {
-      const last = prev.length - 1;
-      if (last >= 0 && stepIndex === last) {
-        const next = prev.slice();
-        next[last] = stepInfo;
-        return next;
+      const next = [...prev];
+      while (next.length <= stepIndex) {
+        next.push({} as StepInfo);
       }
-      if (stepIndex >= prev.length) {
-        return [...prev, stepInfo];
-      }
-      return prev;
+      next[stepIndex] = stepInfo;
+      return next;
     });
   }, []);
 
@@ -44,14 +40,17 @@ export function StepsProvider({ children }: { children: React.ReactNode }) {
   const getSnapshot = useCallback(() => snapshotRef.current, []);
 
   // 订阅来自 background 的步骤推送
-  useEffect(() => {
-    const off = onMessage('sendStepToSidepanel', (msg) => {
-      const { stepIndex, stepInfo } = msg.data as UpsertPayload;
-      upsertByIndex(stepIndex, stepInfo);
-      return steps.length;
-    });
-    return () => { if (typeof off === 'function') off(); };
+  const handleStepMessage = useCallback((msg: any) => {
+    const { stepIndex, stepInfo } = msg.data as UpsertPayload;
+    upsertByIndex(stepIndex, stepInfo);
+    const newLength = Math.max(stepIndex + 1, snapshotRef.current.length);
+    return newLength;
   }, [upsertByIndex]);
+
+  useEffect(() => {
+    const off = onMessage('sendStepToSidepanel', handleStepMessage);
+    return () => { if (typeof off === 'function') off(); };
+  }, [handleStepMessage]);
 
   const api = useMemo<StepsAPI>(() => ({ steps, upsertByIndex, clear, set, getSnapshot }), [steps, upsertByIndex, clear, set, getSnapshot]);
 

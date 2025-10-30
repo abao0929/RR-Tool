@@ -28,17 +28,26 @@ export class Replayer {
         return parentNodeId;
     }
 
-    async replayOneStep(tabId: number, step: StepInfo) {
+    async replayOneStep(tabId: number, step: StepInfo, index: number) {
         if (!tabId) return;
         if (!step) return;
 
         if (!step.locators || step.locators.length === 0) return;
-        const nodeId = await this.tryLocate(tabId, step.locators);
+        let nodeId: number | null = null;
         const stepAction = new StepAction();
-        if (step.kind === 'click') {
-            await stepAction.clickElement(tabId, nodeId!, step.actionInfo!);
+        switch (step.kind) {
+            case 'click':
+                nodeId = await this.tryLocate(tabId, step.locators);
+                await stepAction.click(tabId, nodeId!, step.actionInfo!);
+                break;
+            case 'input':
+                nodeId = await this.tryLocate(tabId, step.locators);
+                await stepAction.Input(tabId, nodeId!, step.actionInfo!);
+                break;
         }
-        console.log("[bg-replay]replay one step finish");
+
+        console.log(`[bg-replay]step ${index} finished`)
+        // console.log("[bg-replay]replay one step finish");
     }
 
     async replaySteps(tabId: number, steps: StepInfo[]) {
@@ -52,7 +61,7 @@ export class Replayer {
 
         for (const step of steps) {
             try {
-                await this.replayOneStep(tabId, step);
+                await this.replayOneStep(tabId, step, steps.indexOf(step));
             } catch (e) {
                 console.error("[bg-replayer]replayOneStep failed", e);
             }

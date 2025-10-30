@@ -16,33 +16,15 @@ export class Recorder {
     async startRecording(tabId: number) {
         if (!tabId) return;
         this.recordingSteps = [];
-        
-        // try {
-        //     await chrome.scripting.executeScript({
-        //         target: { tabId, allFrames: false },
-        //         files: [
-        //             "content-scripts/recorder.js",
-        //             // "content-scripts/highlighter.js",
-        //             // "content-scripts/ui.js",
-        //         ],
-        //     });
-        // } catch (e) {
-        //     console.error("executeScript failed:", e);
-        //     return;
-        // }
         this.chromeManager.recordingInTab(tabId);
-        // this.chromeManager.injectRecorderInWindow("https://www.baidu.com/");
+        // this.chromeManager.recordingInWindow("https://www.baidu.com/");
         console.log("[bg-recorder] recorder start:", tabId);
 
     }
 
     async finishRecording() {
-        // if (!tabId) return;
-        // console.log("[bg-recorder] recorder finished:", tabId);
-        // if (tabId == null) return { ok: true };
-        // await sendMessage("removeListener", {}, tabId);
-
         this.chromeManager.stopRecordingInTab();
+        // this.chromeManager.stopRecordingInWindow();
 
         return { ok: true };
     }
@@ -60,10 +42,15 @@ export class Recorder {
                 }
                 const rectCss = stepInfo.locators[0].positionAndSize;
                 const { x, y, width, height } = rectCss;
-                const screenshotUrl = await this.screenshot.captureElementAccurate(tabId, { x, y, width, height });
-                stepInfo.actionInfo.screenshotUrl = screenshotUrl;
-                this.recordingSteps.push(stepInfo);
-                break;
+                try {
+                    const screenshotUrl = await this.screenshot.captureElementAccurate(tabId, { x, y, width, height });
+                    stepInfo.actionInfo.screenshotUrl = screenshotUrl;
+                    this.recordingSteps.push(stepInfo);
+                    break;
+                } catch (e) {
+                    console.error("captureElementAccurate failed:", e);
+                    return;
+                }
 
             case 'input':
                 const lastInputAction = this.recordingSteps[this.recordingSteps.length - 1];
@@ -92,21 +79,25 @@ export class Recorder {
                 this.recordingSteps.push(stepInfo);
                 break;
 
+            // keydown暂不处理
             case 'keydown':
-                if (this.recordingSteps[this.recordingSteps.length - 1].kind === 'input') return;
-                const lastKeydownAction = this.recordingSteps[this.recordingSteps.length - 1];
-                if (lastKeydownAction && lastKeydownAction.kind === 'keydown'
-                    && lastKeydownAction.actionInfo.repeat
-                    && lastKeydownAction.actionInfo.key === stepInfo.actionInfo.key
-                ) {
-                    stepInfo.actionInfo.repeatTime += stepInfo.ts - lastKeydownAction.ts;
-                    this.recordingSteps.pop();
-                    // this.recordingSteps.push(stepInfo);
-                }
-                this.recordingSteps.push(stepInfo);
-                break;
+                return;
+            //     if (this.recordingSteps[this.recordingSteps.length - 1].kind === 'input') return;
+            //     const lastKeydownAction = this.recordingSteps[this.recordingSteps.length - 1];
+            //     if (lastKeydownAction && lastKeydownAction.kind === 'keydown'
+            //         && lastKeydownAction.actionInfo.repeat
+            //         && lastKeydownAction.actionInfo.key === stepInfo.actionInfo.key
+            //     ) {
+            //         stepInfo.actionInfo.repeatTime += stepInfo.ts - lastKeydownAction.ts;
+            //         this.recordingSteps.pop();
+            //         // this.recordingSteps.push(stepInfo);
+            //     }
+            //     this.recordingSteps.push(stepInfo);
+            //     break;
 
             case 'dragstart':
+                // 存储dragstart事件，等待drop时合并
+                // 仅保留最新的dragstart事件
                 const lastDragStartStep = this.recordingSteps[this.recordingSteps.length - 1];
                 if (lastDragStartStep && lastDragStartStep.kind === 'dragstart') {
                     // 替换旧dragstart事件
@@ -114,7 +105,7 @@ export class Recorder {
                     this.recordingSteps.push(stepInfo);
                 }
                 else this.recordingSteps.push(stepInfo);
-                break;
+                return;
 
             case 'drop':
                 if (this.recordingSteps[this.recordingSteps.length - 1].kind !== 'dragstart') {

@@ -38,19 +38,21 @@ export class ChromeManager {
     public async recordingInTab(tabId: number) {
         // 检查脚本注入
         await this.ensureInjected(tabId);
+        // 记录录制TabId
         this.recordingTabId = tabId;
-        try { await chrome.debugger.attach({ tabId }, "1.3"); } catch { }
+        await chrome.debugger.attach({ tabId }, "1.3");
         // 激活监听器
         await this.setRecorder(tabId, true);
         // 添加标签页update监听器
-        chrome.tabs.onUpdated.addListener(this.onUpdated.bind(this));
+        chrome.tabs.onUpdated.addListener(this.onUpdated);
     }
 
     public async stopRecordingInTab() {
         if (this.recordingTabId === null) return;
-        chrome.tabs.onUpdated.removeListener(this.onUpdated.bind(this));
+        chrome.tabs.onUpdated.removeListener(this.onUpdated);
         await this.setRecorder(this.recordingTabId, false);
         await chrome.debugger.detach({ tabId: this.recordingTabId });
+        // 清理recordingTabId
         this.recordingTabId = null;
     }
 
@@ -87,13 +89,15 @@ export class ChromeManager {
         if (!windowId) return;
         // 获取窗口的标签页
         this.recordingTabs = await chrome.tabs.query({ windowId });
-
+        console.log("[cm] injectRecorderInWindow tabs:", this.recordingTabs);
+        this.recordingTabId = this.recordingTabs[0]?.id ?? null;
         // 全部注入
         for (const tab of this.recordingTabs) {
             if (!tab.id || !tab.url) continue;
             // 注入脚本
             await this.ensureInjected(tab.id);
             // 激活监听器
+            await this.attachDebugger(tab.id);
             await this.setRecorder(tab.id, true);
         }
         // await this.registerRecorderScript();
@@ -127,46 +131,58 @@ export class ChromeManager {
     }
 
     private async addChromeListener() {
-        chrome.tabs.onActivated.addListener(this.onActivated.bind(this));
-        chrome.tabs.onUpdated.addListener(this.onUpdated.bind(this));
-        chrome.tabs.onCreated.addListener(this.onCreated.bind(this));
-        chrome.tabs.onRemoved.addListener(this.onRemoved.bind(this));
+        chrome.tabs.onActivated.addListener(this.onActivated);
+        chrome.tabs.onUpdated.addListener(this.onUpdated);
+        chrome.tabs.onCreated.addListener(this.onCreated);
+        chrome.tabs.onRemoved.addListener(this.onRemoved);
     }
 
     private removeChromeListener() {
-        chrome.tabs.onActivated.removeListener(this.onActivated.bind(this));
-        chrome.tabs.onUpdated.removeListener(this.onUpdated.bind(this));
-        chrome.tabs.onCreated.removeListener(this.onCreated.bind(this));
-        chrome.tabs.onRemoved.removeListener(this.onRemoved.bind(this));
+        chrome.tabs.onActivated.removeListener(this.onActivated);
+        chrome.tabs.onUpdated.removeListener(this.onUpdated);
+        chrome.tabs.onCreated.removeListener(this.onCreated);
+        chrome.tabs.onRemoved.removeListener(this.onRemoved);
     }
 
     // 活跃
-    private async onActivated({ tabId, windowId }: chrome.tabs.OnActivatedInfo) {
-        // 发送步骤消息
+    private onActivated = async ({ tabId, windowId }: chrome.tabs.OnActivatedInfo) => {
+        // 发送标签页切换的步骤消息
         console.log("[cm] tab activated:", tabId);
+        // 更新recordingTabId
+        this.recordingTabId = tabId;
+        // 检查注入
+        await this.ensureInjected(tabId);
+        // 设置录制器
+        await this.setRecorder(tabId, true);
     }
 
     // 刷新
-    private async onUpdated(tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) {
+    private onUpdated = async (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
         // 重新注入
         console.log("[cm] tab updated:", tabId);
-        if (changeInfo.status === "complete") {
-            await this.ensureInjected(tabId);
-
+        if (changeInfo.status === "complete" && tabId === this.recordingTabId) {
+                await this.ensureInjected(tabId);
+                await this.attachDebugger(tabId);
+                await this.setRecorder(tabId, true);
         }
     }
 
     // 新建标签页
-    private async onCreated(tab: chrome.tabs.Tab) {
+    private onCreated = async (tab: chrome.tabs.Tab) => {
         console.log("[cm] tab created:", tab.id);
-        // 在新标签页注入
-        if (tab.id) await this.injectRecorderInTab(tab.id);
+        // 在新标签页注入录制器
+        if (tab.windowId === this.recordingWindowId && tab.id) {
+            await this.ensureInjected(tab.id);
+            await this.attachDebugger(tab.id);
+            await this.setRecorder(tab.id, true);
+        }
+
         // 更新RecordingTabs
         if (this.recordingWindowId) await this.updateRecordingTabs();
 
     }
 
-    private async onRemoved(tabId: number, removeInfo: chrome.tabs.OnRemovedInfo) {
+    private onRemoved = async (tabId: number, removeInfo: chrome.tabs.OnRemovedInfo) => {
         console.log("[cm] tab removed:", tabId);
         // 更新RecordingTabs
         if (this.recordingWindowId) await this.updateRecordingTabs();
@@ -188,6 +204,17 @@ export class ChromeManager {
             }
         } catch (e) {
             console.error("[cm] setRecorder failed:", enable, e);
+        }
+    }
+
+    private async attachDebugger(tabId: number) {
+        try {
+            await chrome.debugger.attach({ tabId }, "1.3");
+            console.log("[cm] attachDebugger success:", tabId);
+            return true;
+        } catch (e) {
+            console.error("[cm] attachDebugger failed:", e);
+            return false;
         }
     }
 }

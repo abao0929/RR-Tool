@@ -6,6 +6,8 @@ export default defineContentScript({
   registration: "runtime",
   runAt: "document_idle",
   async main(crx) {
+    console.log("[cs] recorder.content");
+
     const recorder = new Recorder();
     const highlighter = new Highlighter();
 

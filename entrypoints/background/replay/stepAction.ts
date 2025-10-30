@@ -1,7 +1,30 @@
-import { ClickInfo } from "@/src/template";
+import { ClickInfo, DragInfo, InputInfo, MouseWheelInfo } from "@/src/template";
 
 export class StepAction {
-    async clickElement(tabId: number, nodeId: number, clickInfo: ClickInfo) {
+
+    // 拖拽
+    async drag(tabId: number, dragInfo: DragInfo) {
+
+    }
+
+    // 滚轮
+    async wheel(tabId: number, nodeId: number, mouseWheelInfo: MouseWheelInfo) {
+        
+    }
+
+    // 输入
+    async Input(tabId: number, nodeId: number, inputInfo: InputInfo) {
+        const target = { tabId };
+        await chrome.debugger.sendCommand(target, "DOM.scrollIntoViewIfNeeded", { nodeId }).catch(() => {});
+        await chrome.debugger.sendCommand(target, "DOM.focus", { nodeId });
+
+        // 清空已有内容（待定）
+
+        await chrome.debugger.sendCommand(target, "Input.insertText", { text: inputInfo.value });
+    }
+
+    // 点击
+    async click(tabId: number, nodeId: number, clickInfo: ClickInfo) {
         const t = { tabId };
         await chrome.debugger.sendCommand(t, "DOM.scrollIntoViewIfNeeded", { nodeId }).catch(() => { });
 

@@ -1,22 +1,29 @@
-// utils（可放 recorder.content.ts 顶部）
-const UI_SEL = '[data-rr-ui]';
+// 统一的选择器 / 标记
+const UI_SELECTOR = '#rrtool-ui, [data-rec-ignore="1"]';
 
-export function isFromUIEvent(e: Event): boolean {
-  const path = (e.composedPath?.() ?? []) as EventTarget[];
-  return path.some(t => t instanceof Element && t.closest(UI_SEL));
+/**
+ * 是否来自我们自己注入的 UI（用于监听器开头过滤）
+ */
+export function isFromUIEvent(event: Event): boolean {
+  const path = event.composedPath?.() ?? [event.target as EventTarget];
+  for (const el of path) {
+    if (el instanceof HTMLElement && el.matches(UI_SELECTOR)) {
+      return true;
+    }
+  }
+  return false;
 }
 
+/**
+ * 从一个坐标下挑选“不是我们 UI 的元素”
+ * 给 highlighter 用
+ */
 export function pickNonUIElementAt(x: number, y: number): Element | null {
-  // 优先 elementsFromPoint（能拿到堆栈）
-  if (document.elementsFromPoint) {
-    const stack = document.elementsFromPoint(x, y) as Element[];
-    return stack.find(el => !el.closest(UI_SEL)) ?? null;
+  const stack = document.elementsFromPoint(x, y) as Element[];
+  for (const el of stack) {
+    if (!el.matches(UI_SELECTOR)) {
+      return el;
+    }
   }
-  // 兜底：临时隐藏 UI 再取底下元素
-  const ui = document.querySelector(UI_SEL) as HTMLElement | null;
-  const prev = ui?.style.visibility;
-  if (ui) ui.style.visibility = "hidden";
-  const hit = document.elementFromPoint(x, y);
-  if (ui) ui.style.visibility = prev ?? "";
-  return hit instanceof Element && !hit.closest(UI_SEL) ? hit : null;
+  return null;
 }

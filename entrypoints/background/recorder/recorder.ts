@@ -1,37 +1,54 @@
 import { Screenshot } from "./screenshot";
 import { onMessage, sendMessage } from "@/src/messaging";
 import { StepInfo } from "@/src/template";
-import { ChromeManager } from "../chromeManager";
+import { browserController } from "../browserController";
 
 export class Recorder {
     screenshot: Screenshot;
     recordingSteps: StepInfo[];
-    chromeManager: ChromeManager;
+    chromeManager: browserController;
+    recordingMode: 'tab' | 'window' | null;
     constructor() {
         this.screenshot = new Screenshot();
         this.recordingSteps = [];
-        this.chromeManager = new ChromeManager();
+        this.chromeManager = new browserController();
+        this.recordingMode = null;
     }
 
-    async startRecording(tabId: number) {
+    async startRecording(tabId: number, mode: string | null = "window") {
         if (!tabId) return;
         this.recordingSteps = [];
-        this.chromeManager.recordingInTab(tabId);
-        // this.chromeManager.recordingInWindow("https://www.baidu.com/");
+        if (mode === "tab") {
+            this.recordingMode = "tab";
+            await this.chromeManager.recordingInTab(tabId);
+        }
+        else if (mode === "window") {
+            this.recordingMode = "window";
+            await this.chromeManager.recordingInWindow("https://www.baidu.com/");
+        }
+        else {
+            console.warn("Unknown recording mode:", mode);
+            return false;
+        }
         console.log("[bg-recorder] recorder start:", tabId);
+        return true;
 
     }
 
     async finishRecording() {
-        this.chromeManager.stopRecordingInTab();
-        // this.chromeManager.stopRecordingInWindow();
-
-        return { ok: true };
+        // this.chromeManager.stopRecordingInTab();
+        if (this.recordingMode === "tab") await this.chromeManager.stopRecordingInTab();
+        else if (this.recordingMode === "window") await this.chromeManager.stopRecordingInWindow();
+        this.recordingMode = null;
+        console.log("[bg-recorder] recorder stop");
+        return true;
     }
 
     async recorderStep(tabId: number, stepInfo: StepInfo): Promise<boolean | undefined> {
         if (!stepInfo) return;
         if (!tabId) return;
+        // 补充信息
+        stepInfo.tabId = tabId;
         // this.recordingSteps.push(stepInfo);
         switch (stepInfo.kind) {
             case 'click':

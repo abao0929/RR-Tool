@@ -1,6 +1,7 @@
 import { onMessage, sendMessage } from "@/src/messaging";
 
-export class ChromeManager {
+export class browserController {
+
     windowWidth: number;
     windowHeight: number;
     windowPositionLeft: number;
@@ -8,6 +9,7 @@ export class ChromeManager {
     recordingWindowId: number | null;
     recordingTabId: number | null;
     recordingTabs: chrome.tabs.Tab[];
+
     constructor() {
         this.windowWidth = 1280;// 默认宽度
         this.windowHeight = 800;// 默认高度
@@ -118,7 +120,6 @@ export class ChromeManager {
         }
     }
 
-
     // 检查录制脚本注入
     private async ensureInjected(tabId: number) {
         try {
@@ -126,8 +127,11 @@ export class ChromeManager {
             await sendMessage("pingRecorder", {}, tabId);
             console.log("[cm] recorder already injected in tab:", tabId);
             return;
-        } catch (e) { }
-        await this.injectRecorderInTab(tabId);
+        } catch (e) { 
+            console.log("[cm] recorder not injected yet in tab:", tabId);
+            await this.injectRecorderInTab(tabId);
+        }
+        
     }
 
     private async addChromeListener() {
@@ -135,6 +139,7 @@ export class ChromeManager {
         chrome.tabs.onUpdated.addListener(this.onUpdated);
         chrome.tabs.onCreated.addListener(this.onCreated);
         chrome.tabs.onRemoved.addListener(this.onRemoved);
+        chrome.webNavigation.onCreatedNavigationTarget.addListener(this.onCreatedNavigationTarget);
     }
 
     private removeChromeListener() {
@@ -142,10 +147,15 @@ export class ChromeManager {
         chrome.tabs.onUpdated.removeListener(this.onUpdated);
         chrome.tabs.onCreated.removeListener(this.onCreated);
         chrome.tabs.onRemoved.removeListener(this.onRemoved);
+        chrome.webNavigation.onCreatedNavigationTarget.removeListener(this.onCreatedNavigationTarget);
+    }
+
+    private onCreatedNavigationTarget = async (details: chrome.webNavigation.WebNavigationSourceCallbackDetails) => {
+        console.log("[cm] navigation target created:", details);
     }
 
     // 活跃
-    private onActivated = async ({ tabId, windowId }: chrome.tabs.OnActivatedInfo) => {
+    private onActivated = async ({ tabId, windowId, }: chrome.tabs.OnActivatedInfo) => {
         // 发送标签页切换的步骤消息
         console.log("[cm] tab activated:", tabId);
         // 更新recordingTabId
@@ -160,7 +170,14 @@ export class ChromeManager {
     private onUpdated = async (tabId: number, changeInfo: chrome.tabs.OnUpdatedInfo, tab: chrome.tabs.Tab) => {
         // 重新注入
         console.log("[cm] tab updated:", tabId);
-        if (changeInfo.status === "complete" && tabId === this.recordingTabId) {
+        if (tab.url?.startsWith("chrome://")) {
+            console.log("[cm] updated chrome tab:", tab.url);
+            return;
+        }
+        else if (tab.windowId === this.recordingWindowId 
+            && changeInfo.status === "complete" 
+            && tabId === this.recordingTabId
+        ) {
                 await this.ensureInjected(tabId);
                 await this.attachDebugger(tabId);
                 await this.setRecorder(tabId, true);
@@ -170,8 +187,14 @@ export class ChromeManager {
     // 新建标签页
     private onCreated = async (tab: chrome.tabs.Tab) => {
         console.log("[cm] tab created:", tab.id);
+        
+        // 如果是 chrome:// 开头的 URL
+        if (tab.url?.startsWith("chrome://")){  // !tab.url || (!tab.url.startsWith("https://") && !tab.url.startsWith("http://"))
+            console.log("[cm] create new chrome tab:", tab.url);
+            return;
+        }
         // 在新标签页注入录制器
-        if (tab.windowId === this.recordingWindowId && tab.id) {
+        else if (tab.windowId === this.recordingWindowId && tab.id) {
             await this.ensureInjected(tab.id);
             await this.attachDebugger(tab.id);
             await this.setRecorder(tab.id, true);
@@ -203,7 +226,7 @@ export class ChromeManager {
                 await sendMessage("removeListener", {}, tabId);
             }
         } catch (e) {
-            console.error("[cm] setRecorder failed:", enable, e);
+            // console.error("[cm] setRecorder failed:", enable, e);
         }
     }
 
@@ -213,7 +236,7 @@ export class ChromeManager {
             console.log("[cm] attachDebugger success:", tabId);
             return true;
         } catch (e) {
-            console.error("[cm] attachDebugger failed:", e);
+            console.warn("[cm] attachDebugger failed:", e);
             return false;
         }
     }

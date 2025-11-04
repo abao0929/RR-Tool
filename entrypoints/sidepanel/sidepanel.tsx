@@ -6,22 +6,34 @@ import { Button, Space, List, Image, Modal, Collapse, Col, Row } from 'antd';
 import type { CollapseProps } from 'antd';
 import { StepInfo, SystemCommand, SystemState, Modifiers, Locator } from '@/src/template';
 import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder, FaKeyboard } from 'react-icons/fa';
+import { BiCameraMovie } from "react-icons/bi";
 import { ButtonColorType } from 'antd/es/button';
 import { StepsProvider, useSteps } from './hooks';
 
 // Record<K, T>生成一个对象映射类型 Partial将K键变为可选
-const primaryByState: Partial<Record<
-    SystemState, { label: string; icon: React.ReactNode; command: SystemCommand; color: ButtonColorType }
+const recorderControl: Partial<Record<
+    SystemState, { label: string; icon: React.ReactNode; command: SystemCommand; color: ButtonColorType; disabled: boolean }
 >> = {
-    'idle': { label: 'idle', icon: <FaPlayCircle />, command: 'start-recording', color: 'green' },
-    'recording': { label: 'recording', icon: <FaStopCircle />, command: 'stop-recording', color: 'red' },
+    'idle': { label: 'idle', icon: <BiCameraMovie />, command: 'start-recording', color: 'green', disabled: false },
+    'recording': { label: 'recording', icon: <BiCameraMovie />, command: 'stop-recording', color: 'red', disabled: false },
+    'replaying': { label: 'replaying', icon: <BiCameraMovie />, command: 'stop-replaying', color: 'red', disabled: true },
+};
+
+const replayControl: Partial<Record<
+    SystemState, { label: string; icon: React.ReactNode; command: SystemCommand; color: ButtonColorType; disabled: boolean }
+>> = {
+    'idle': { label: 'idle', icon: <FaPlayCircle />, command: 'start-replaying', color: 'green', disabled: false },
+    'recording': { label: 'recording', icon: <FaPlayCircle />, command: 'stop-recording', color: 'red', disabled: true },
+    'replaying': { label: 'replaying', icon: <FaStopCircle />, command: 'stop-replaying', color: 'red', disabled: false },
 };
 
 function Header() {
     // spState(Sidepanel State)
     const [spState, setSpState] = useState<SystemState>("idle");
-    const [busy, setBusy] = useState<Boolean>(false);
-    const [tabId, setTabId] = useState<number | null>(null);
+    // const [busy, setBusy] = useState<boolean>(false);
+    const [replaying, setReplaying] = useState<boolean>(false);
+    const [recording, setRecording] = useState<boolean>(false);
+    // const [tabId, setTabId] = useState<number | null>(null);
     const { clear } = useSteps();
 
     useEffect(() => {
@@ -35,24 +47,36 @@ function Header() {
         })()
     })
 
-
-    const primaryBtnAction = async (command: SystemCommand) => {
-        if (busy) return;
-        setBusy(true);
-        if (command === 'start-recording') {
-            clear();
+    const controllerAction = async (command: SystemCommand) => {
+        // if (busy) return;
+        // setBusy(true);
+        switch (command) {
+            case 'start-replaying':
+                setReplaying(true);
+                break;
+            case 'stop-replaying':
+                setReplaying(false);
+                break;
+            case 'start-recording':
+                setRecording(true);
+                clear();
+                break;
+            case 'stop-recording':
+                setRecording(false);
+                break;
         }
         try {
             // 把状态消息传回background
             const res = await sendMessage('systemControl', command);
             setSpState(res.state);
-            setTabId(res.tabId);
+            // setTabId(res.tabId);
         } finally {
-            setBusy(false);
+            // setBusy(false);
         }
     }
 
-    const recorderBtn = primaryByState[spState];
+    const recorderBtn = recorderControl[spState];
+    const replayerBtn = replayControl[spState];
 
     return (
         <div style={{ padding: 12 }}>
@@ -62,9 +86,18 @@ function Header() {
                 // size="small"
                 color={recorderBtn?.color}
                 icon={recorderBtn?.icon}
-                onClick={() => recorderBtn && primaryBtnAction(recorderBtn.command)}
+                onClick={() => recorderBtn && controllerAction(recorderBtn.command)}
+                // disabled={!busy||!replaying}
+                disabled={recorderBtn?.disabled}
             />
-
+            <Button
+                shape="circle"
+                variant="text"
+                color={replayerBtn?.color}
+                icon={replayerBtn?.icon}
+                onClick={() => replayerBtn && controllerAction(replayerBtn.command)}
+                disabled={replayerBtn?.disabled}
+            />
         </div>
     )
 }

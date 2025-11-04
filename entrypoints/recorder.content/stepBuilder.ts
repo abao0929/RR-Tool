@@ -16,6 +16,7 @@ export class StepBuilder {
                 return {
                     kind: 'click',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: clickInfo,
@@ -28,6 +29,7 @@ export class StepBuilder {
                 const newInputStep: StepInfo = {
                     kind: 'input',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: inputInfo,
@@ -41,6 +43,7 @@ export class StepBuilder {
                 const newWheelStep: StepInfo = {
                     kind: 'wheel',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: wheelInfo,
@@ -54,6 +57,7 @@ export class StepBuilder {
                 const newKeydownStep: StepInfo = {
                     kind: 'keydown',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: keydownInfo,
@@ -69,6 +73,7 @@ export class StepBuilder {
                 const newDragStartStep: StepInfo = {
                     kind: 'dragstart',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: dragStartInfo,
@@ -84,6 +89,7 @@ export class StepBuilder {
                 const newDropStep: StepInfo = {
                     kind: 'drop',
                     ts: Date.now(),
+                    tabId: null,
                     url: window.location.href,
                     locators,
                     actionInfo: dropInfo,

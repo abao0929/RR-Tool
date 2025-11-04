@@ -10,6 +10,7 @@ export interface Locator {
 export interface StepInfo {
     kind: string | null;               // 操作类型，如 click、input 等
     ts: number;                 // 时间戳
+    tabId: number | null;
     url: string | null;                // 发生操作时的页面 URL
     locators: Locator[];       // 定位信息，从目标元素开始逐级向上
     actionInfo: any | null;        // 与操作相关的额外信息，如 click 的按钮、坐标等
@@ -66,6 +67,11 @@ export interface DragInfo {
 
 }
 
+export interface tabChangeInfo {
+    tabId: number;
+    url: string;
+}
+
 export interface Modifiers {
     shift: boolean;
     ctrl: boolean;
@@ -77,8 +83,13 @@ export type SystemState =
     | "idle"
     | "recording"
     | "recording-pause"
+    | "replaying"
+    | "replaying-pause";
 
 export type SystemCommand =
     | "start-recording"
     | "stop-recording"
     | "pause-recording" 
+    | "start-replaying"
+    | "stop-replaying"
+    | "pause-replaying";

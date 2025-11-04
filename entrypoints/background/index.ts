@@ -29,7 +29,7 @@ export default defineBackground(() => {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 recordingTabId = tab?.id ?? null;
                 // 注入脚本，开始录制
-                if (recordingTabId) recorder.startRecording(recordingTabId);
+                if (recordingTabId) recorder.startRecording(recordingTabId, "window");
                 //更新state状态为：录制中
                 bkState = 'recording';
                 break;
@@ -52,12 +52,13 @@ export default defineBackground(() => {
 
     onMessage("recordingStep", async (msg) => {
         const stepInfo = msg.data;
+        const tabId = msg.sender.tab?.id ?? null;
         // console.log("[bg] recorder step:", msg.data);
         if (!stepInfo) {
             console.error("stepInfo is missing");
             return;
         }
-        if (recordingTabId) recorder.recorderStep(recordingTabId, stepInfo);
+        recorder.recorderStep(tabId, stepInfo);
         steps.push(stepInfo);
     });
 });

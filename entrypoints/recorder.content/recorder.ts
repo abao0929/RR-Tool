@@ -80,7 +80,7 @@ export class Recorder {
         }
     }
 
-    addListener() {
+    async addListener() {
         window.addEventListener("click", this.onClick, true);
         window.addEventListener("input", this.onInput, true);
         window.addEventListener("wheel", this.onWheel, true);
@@ -90,7 +90,7 @@ export class Recorder {
         console.log("[cs] Listener added");
     }
 
-    removeListener() {
+    async removeListener() {
         window.removeEventListener("click", this.onClick, true);
         window.removeEventListener("input", this.onInput, true);
         window.removeEventListener("wheel", this.onWheel, true);

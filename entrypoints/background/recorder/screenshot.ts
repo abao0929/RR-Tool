@@ -93,9 +93,20 @@ export class Screenshot {
 
     // 精确截取元素
     async captureElementAccurate(tabId: number, rectCss: { x: number; y: number; width: number; height: number }) {
-        const vp = await this.captureViewport(tabId);// 先截可视区 + 拿缩放
-        const url = await this.cropByCssRect(vp, rectCss);// 再按缩放裁剪
-        return url;
+        try {
+            const vp = await this.captureViewport(tabId);// 先截可视区 + 拿缩放
+            const url = await this.cropByCssRect(vp, rectCss);// 再按缩放裁剪
+            console.log("captureElementAccurate success");
+            return url;
+        } catch (error) {
+            console.warn("captureElementAccurate failed, try again:", error);
+            // 重试一次
+            try { await chrome.debugger.attach({ tabId }, "1.3"); } catch (e) { console.error("re-attach failed:", e); }
+            const vp = await this.captureViewport(tabId);// 先截可视区 + 拿缩放
+            const url = await this.cropByCssRect(vp, rectCss);// 再按缩放裁剪
+            return url;
+        }
+        
     }
 
     // 保存图片

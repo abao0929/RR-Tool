@@ -1,6 +1,7 @@
 import { sendMessage, onMessage } from "@/src/messaging";
 import { Recorder } from "./recorder";
 import { Highlighter } from "./highlighter"
+import { RecorderUi } from "./ui";
 
 export default defineContentScript({
   registration: "runtime",
@@ -10,6 +11,7 @@ export default defineContentScript({
 
     const recorder = new Recorder();
     const highlighter = new Highlighter();
+    const ui = new RecorderUi();
 
     let isActive = false;
 
@@ -21,9 +23,10 @@ export default defineContentScript({
       // 如果未启用则添加监听器和高亮
       if (!isActive) {
         isActive = true;
-        recorder.addListener();
-        highlighter.addHighlighter();
-        
+        await recorder.addListener();
+        await highlighter.addHighlighter();
+        // await ui.addUi();
+
       }
     });
 
@@ -31,8 +34,9 @@ export default defineContentScript({
       // 如果启用则移除监听器和高亮
       if (isActive) {
         isActive = false;
-        recorder.removeListener();
-        highlighter.removeHighlighter();
+        await recorder.removeListener();
+        await highlighter.removeHighlighter();
+        // await ui.removeUi();
       }
     });
   },

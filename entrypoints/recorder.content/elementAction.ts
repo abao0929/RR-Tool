@@ -1,4 +1,3 @@
-import { ImStarEmpty } from "react-icons/im";
 import { ClickInfo, InputInfo, KeydownInfo, MouseWheelInfo, StepInfo, DragInfo } from "../../src/template.js";
 
 export class ElementAction {
@@ -6,11 +5,11 @@ export class ElementAction {
         const endX = e.clientX;
         const endY = e.clientY;
         return {
-            startPoint: { x: null, y: null },
+            startPoint: { x: 0, y: 0 }, // 修复：不能为 null，提供默认值
             endPoint: { x: endX, y: endY },
-            startLocators: null,
-            endLocators: null,
-        } 
+            startLocators: [], // 修复：应该是空数组而不是 null
+            endLocators: [], // 修复：应该是空数组而不是 null
+        }
     }
 
     getDragStartInfo(e: DragEvent): DragInfo | null {
@@ -18,9 +17,9 @@ export class ElementAction {
         const startY = e.clientY;
         return {
             startPoint: { x: startX, y: startY },
-            endPoint: { x: null, y: null },
-            startLocators: null,
-            endLocators: null,
+            endPoint: { x: 0, y: 0 }, // 修复：不能为 null，提供默认值
+            startLocators: [], // 修复：应该是空数组而不是 null
+            endLocators: [], // 修复：应该是空数组而不是 null
         }
     }
 
@@ -30,7 +29,7 @@ export class ElementAction {
             code: e.code,
             location: e.location,
             repeat: e.repeat,
-            repeatTime: null,
+            repeatTime: 0, // 修复：不能为 null，提供默认值 0
             isComposing: e.isComposing
         }
     }
@@ -39,22 +38,14 @@ export class ElementAction {
         const deltaX = e.deltaX;
         const deltaY = e.deltaY;
         let direction: 'up' | 'down' | 'left' | 'right' | 'none' = 'none';
-        if (deltaX === 0) {
-            if (deltaY > 0) {
-                direction = 'down';
-            }
-            if (deltaY < 0){
-                direction = 'up';
-            }
+        
+        // 修复：简化逻辑，避免重复判断
+        if (Math.abs(deltaY) > Math.abs(deltaX)) {
+            direction = deltaY > 0 ? 'down' : 'up';
+        } else if (Math.abs(deltaX) > Math.abs(deltaY)) {
+            direction = deltaX > 0 ? 'right' : 'left';
         }
-        if (deltaY === 0) {
-            if (deltaX > 0) {
-                direction = 'right';
-            }
-            if (deltaX < 0) {
-                direction = 'left'
-            }
-        }
+        
         return {
             direction,
             deltaX,
@@ -70,10 +61,10 @@ export class ElementAction {
         };
     }
 
-    getInputInfo(e: InputEvent): InputInfo{
+    getInputInfo(e: InputEvent): InputInfo {
         const target = e.target as HTMLInputElement;
         return {
-            value: target?.value
+            value: target?.value || '' // 修复：提供默认空字符串
         }
     }
 
@@ -83,7 +74,7 @@ export class ElementAction {
 
         const offset = this.getOffsetInElement(e, el);
         const pagePoint = this.getPagePointFromEvent(e);
-        const elementRect = this.getElementPageRect(el);
+        const elementRect = this.getElementVisiblePageRect(el);
 
         return {
             button: e.button,
@@ -97,12 +88,12 @@ export class ElementAction {
                 alt: e.altKey,
                 meta: e.metaKey,
             },
-            screenshotUrl: null
+            screenshotUrl: null // 这个保持 null 是正确的，后续会被填充
         }
     }
 
     getOffsetInElement(e: MouseEvent, el: Element) {
-        const r = el.getBoundingClientRect();           // 视口坐标
+        const r = el.getBoundingClientRect();
         const x = e.clientX - r.left;
         const y = e.clientY - r.top;
         return {
@@ -111,18 +102,15 @@ export class ElementAction {
         };
     }
 
-    // 点击点相对“顶层页面”的坐标（跨 iframe 累加）
     getPagePointFromEvent(e: MouseEvent) {
-        // 先从“当前文档”视角：client + 本文档滚动
         let x = e.clientX + (window.scrollX || 0);
         let y = e.clientY + (window.scrollY || 0);
 
-        // 逐层把 iframe 偏移与父文档滚动加上，直到顶层
         let win: Window | null = (e.view as Window) || window;
         while (win && win !== win.top) {
             const frameEl = win.frameElement as Element | null;
             if (!frameEl) break;
-            const fr = frameEl.getBoundingClientRect();   // 在父文档【视口】中的位置
+            const fr = frameEl.getBoundingClientRect();
             const parent: Window = win.parent!;
             x += fr.left + (parent.scrollX || 0);
             y += fr.top + (parent.scrollY || 0);
@@ -131,27 +119,68 @@ export class ElementAction {
         return { x: Math.round(x), y: Math.round(y) };
     }
 
-    // 元素相对“顶层页面”的矩形（跨 iframe 累加）
-    getElementPageRect(el: Element) {
-        // 本文档：先视口 → 页面
-        const r0 = el.getBoundingClientRect();
-        let x = r0.left + (el.ownerDocument?.defaultView?.scrollX || 0);
-        let y = r0.top + (el.ownerDocument?.defaultView?.scrollY || 0);
-        const w = Math.round(r0.width);
-        const h = Math.round(r0.height);
-
-        // 逐层累加到顶层
+    getElementVisiblePageRect(el: Element) {
         let win: Window | null = el.ownerDocument?.defaultView ?? null;
+        if (!win) return null;
+
+        let r: DOMRect | null = el.getBoundingClientRect();
+
+        r = this.intersectRect(
+            r!,
+            { left: 0, top: 0, right: win.innerWidth, bottom: win.innerHeight }
+        );
+        if (!r) return null;
+
+        const topWin = win.top!;
+
         while (win && win !== win.top) {
-            const frameEl = win.frameElement as Element | null;
+            const frameEl = win.frameElement as HTMLElement | null;
             if (!frameEl) break;
+
             const fr = frameEl.getBoundingClientRect();
-            const parent = win.parent!;
-            x += fr.left + (parent.scrollX || 0);
-            y += fr.top + (parent.scrollY || 0);
-            win = parent;
+            const parentWin: Window = win.parent as Window;
+
+            r = new DOMRect(
+                r.left + fr.left,
+                r.top + fr.top,
+                r.right - r.left,
+                r.bottom - r.top,
+            );
+
+            r = this.intersectRect(
+                r!,
+                { left: 0, top: 0, right: parentWin.innerWidth, bottom: parentWin.innerHeight }
+            );
+            if (!r) return null;
+
+            win = parentWin;
         }
-        return { x: Math.round(x), y: Math.round(y), width: w, height: h };
+
+        const pageX = r.left + topWin.scrollX;
+        const pageY = r.top + topWin.scrollY;
+        const width = r.right - r.left;
+        const height = r.bottom - r.top;
+
+        if (width <= 0 || height <= 0) return null;
+
+        return {
+            x: Math.round(pageX),
+            y: Math.round(pageY),
+            width: Math.round(width),
+            height: Math.round(height),
+        };
+    }
+
+    private intersectRect(
+        a: DOMRect | { left: number; top: number; right: number; bottom: number },
+        b: { left: number; top: number; right: number; bottom: number },
+    ): DOMRect | null {
+        const left = Math.max(a.left, b.left);
+        const top = Math.max(a.top, b.top);
+        const right = Math.min(a.right, b.right);
+        const bottom = Math.min(a.bottom, b.bottom);
+        if (right <= left || bottom <= top) return null;
+        return new DOMRect(left, top, right - left, bottom - top);
     }
 
     getEventElement(e: MouseEvent): Element | null {

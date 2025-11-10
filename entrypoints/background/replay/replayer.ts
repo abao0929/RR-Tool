@@ -1,12 +1,19 @@
 import { ElementLocator } from "./stepLocator";
 import { StepAction } from "./stepAction";
 import { Locator } from "@/src/template";
-import { StepInfo } from "@/src/template";
+import { StepInfo, TestFlow } from "@/src/template";
 import { waitOneNewRequestAndFinish } from "./wait";
 import { onMessage, sendMessage } from "@/src/messaging";
 
 export class Replayer {
+    replayWindowId: number | null = null;
+    replayTabs: chrome.tabs.Tab[] = [];
+    currentReplayTab: chrome.tabs.Tab | null = null;
     constructor() {
+        this.replayWindowId = null;
+        this.replayTabs = [];
+        this.currentReplayTab = null;
+
     }
 
     async tryLocate(tabId: number, locators: Locator[]) {
@@ -28,8 +35,8 @@ export class Replayer {
         return parentNodeId;
     }
 
-    async replayOneStep(tabId: number, step: StepInfo, index: number) {
-        if (!tabId) return;
+    async replayOneStep(tab: chrome.tabs.Tab, step: StepInfo, index: number) {
+        if (!tab) return;
         if (!step) return;
 
         if (!step.locators || step.locators.length === 0) return;
@@ -37,12 +44,12 @@ export class Replayer {
         const stepAction = new StepAction();
         switch (step.kind) {
             case 'click':
-                nodeId = await this.tryLocate(tabId, step.locators);
-                await stepAction.click(tabId, nodeId!, step.actionInfo!);
+                nodeId = await this.tryLocate(tab.id!, step.locators);
+                await stepAction.click(tab.id!, nodeId!, step.actionInfo!);
                 break;
             case 'input':
-                nodeId = await this.tryLocate(tabId, step.locators);
-                await stepAction.Input(tabId, nodeId!, step.actionInfo!);
+                nodeId = await this.tryLocate(tab.id!, step.locators);
+                await stepAction.Input(tab.id!, nodeId!, step.actionInfo!);
                 break;
         }
 
@@ -50,10 +57,40 @@ export class Replayer {
         // console.log("[bg-replay]replay one step finish");
     }
 
-    async replaySteps(tabId: number, steps: StepInfo[]) {
-        if (!tabId || !steps || steps.length === 0) return;
+    async replayStepsInWindow(windowId: number, testFlow: TestFlow) {
+        if (!windowId || !testFlow || testFlow.steps.length === 0) return;
+        this.replayWindowId = windowId;
+        const steps = testFlow.steps;
+        for (const step of steps) {
+            // 获取当前活跃tabId
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            const currentTab = tabs[0] ?? null;
+            // 更新replayTabs列表
+            this.replayTabs = tabs;
+            // 检查&切换tab
+            if(step.url&&currentTab) {
+                const tabMatched = await this.checkTabUrl(step.url, currentTab);
+                if (tabMatched && this.currentReplayTab) {
+                    await this.replayOneStep(this.currentReplayTab, step, steps.indexOf(step));
+                }
+            }
+        }
+
+    }
+
+    async replayStepsInTab(tab: chrome.tabs.Tab, testFlow: TestFlow) {
+        // 检查tab.url
+        if (tab.url !== testFlow.originUrl) {
+            throw new Error ("tab.Url != testflow.originUrl");
+            return;
+        }
+
+        const steps = testFlow.steps;
+        
+        if (!tab) return;
+        if (!tab.id || !steps || steps.length === 0) return;
         try {
-            await chrome.debugger.attach({ tabId }, "1.3");
+            await chrome.debugger.attach({ tabId: tab.id }, "1.3");
         } catch (e) {
             console.error("[bg] attach failed:", e);
         }
@@ -61,12 +98,12 @@ export class Replayer {
 
         for (const step of steps) {
             try {
-                await this.replayOneStep(tabId, step, steps.indexOf(step));
+                await this.replayOneStep(tab, step, steps.indexOf(step));
             } catch (e) {
                 console.error("[bg-replayer]replayOneStep failed", e);
             }
             // 等待
-            const res = await waitOneNewRequestAndFinish(tabId, { armMs: 400, timeoutMs: 10000 });
+            const res = await waitOneNewRequestAndFinish(tab.id, { armMs: 400, timeoutMs: 10000 });
             if (!res.found) {
                 // console.log("窗口期内没有新网络请求，直接返回");
                 continue;
@@ -81,12 +118,32 @@ export class Replayer {
         }
 
         try {
-            await chrome.debugger.detach({ tabId });
+            await chrome.debugger.detach({ tabId:tab.id });
         } catch (e) {
             console.error("[bg] detach failed:", e);
         }
     }
 
+    async checkTabUrl(targetTabUrl: string, currentTab: chrome.tabs.Tab): Promise<boolean> {
+        if (currentTab.url === targetTabUrl) {
+            this.currentReplayTab = currentTab;
+            return true;
+        }
+        // 在tabs中查找匹配的tab
+        else {
+            const tabs = await chrome.tabs.query({ windowId: this.replayWindowId ?? undefined });
+            for (let tab of tabs) {
+                if (tab.url === targetTabUrl) {
+                    // 切换tab
+                    await chrome.tabs.update(tab.id!, { active: true });
+                    this.currentReplayTab = tab;
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+    }
 
 }
 

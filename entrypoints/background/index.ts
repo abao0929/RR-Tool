@@ -10,10 +10,6 @@ export default defineBackground(() => {
 
     // background全局状态 background state
     let bkState: SystemState = "idle";
-    // 录制步骤
-    let steps: StepInfo[] = [];
-    // 标签页tabId
-    let tabIds: number[] = [];
     let recordingTabId: number | null = null;
 
     onMessage("getSystemState", async (msg) => {
@@ -23,13 +19,13 @@ export default defineBackground(() => {
     // 消息接收端：from sidepanel控制
     onMessage("systemControl", async (msg) => {
 
-        switch (msg.data) {
+        switch (msg.data.command) {
             case "start-recording":
                 // 更新recordingTabId
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
                 recordingTabId = tab?.id ?? null;
                 // 注入脚本，开始录制
-                if (recordingTabId) recorder.startRecording(recordingTabId, "window");
+                if (recordingTabId) recorder.startRecording(recordingTabId, msg.data.mode, msg.data.url);
                 //更新state状态为：录制中
                 bkState = 'recording';
                 break;
@@ -59,6 +55,13 @@ export default defineBackground(() => {
             return;
         }
         recorder.recorderStep(tabId, stepInfo);
-        steps.push(stepInfo);
     });
+
+    onMessage("clearSteps", async () => {
+        recorder.clearRecordingSteps();
+    })
+
+    onMessage("downloadTestFlow", async () => {
+        recorder.downloadTestFlow();
+    })
 });

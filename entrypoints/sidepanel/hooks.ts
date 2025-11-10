@@ -1,7 +1,7 @@
 // useSteps.tsx
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { StepInfo } from '@/src/template';
-import { onMessage } from '@/src/messaging';
+import { sendMessage, onMessage } from '@/src/messaging';
 
 type UpsertPayload = { stepIndex: number; stepInfo: StepInfo };
 
@@ -35,7 +35,12 @@ export function StepsProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  const clear = useCallback(() => setSteps([]), []);
+  const clear = useCallback(() => {
+    // 发送消息给 background 清空步骤，同步  
+    sendMessage("clearSteps", {});
+    // 本地清空
+    setSteps([]);
+  }, []);
   const set = useCallback((next: StepInfo[]) => setSteps(next), []);
   const getSnapshot = useCallback(() => snapshotRef.current, []);
 

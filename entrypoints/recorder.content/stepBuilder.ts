@@ -47,6 +47,7 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: wheelInfo,
+
                 }
                 return newWheelStep;
 
@@ -61,6 +62,7 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: keydownInfo,
+
                 }
                 return newKeydownStep;
 
@@ -77,6 +79,7 @@ export class StepBuilder {
                     url: window.location.href,
                     locators,
                     actionInfo: dragStartInfo,
+
                 }
                 return newDragStartStep;
 

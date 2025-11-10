@@ -1,5 +1,11 @@
-export class Screenshot {
+import { ElementRect } from "../../../src/template.js";
+import { browserController } from "../browserController.js";
 
+export class Screenshot {
+    browserController: browserController;
+    constructor() {
+        this.browserController = new browserController();
+    }
     // 截取当前可视区
     async captureViewport(tabId: number) {
         const target = { tabId };
@@ -106,7 +112,7 @@ export class Screenshot {
             const url = await this.cropByCssRect(vp, rectCss);// 再按缩放裁剪
             return url;
         }
-        
+
     }
 
     // 保存图片
@@ -119,4 +125,32 @@ export class Screenshot {
             conflictAction: "uniquify",
         });
     }
+
+    async captureElementRect(
+        tabId: number,
+        rect: ElementRect
+    ): Promise<string> {
+        // 确保已附加调试器
+
+        const { x, y, width, height } = rect;
+
+        const result = await chrome.debugger.sendCommand(
+            { tabId },
+            "Page.captureScreenshot",
+            {
+                format: "png",
+                fromSurface: true,
+                clip: {
+                    x,
+                    y,
+                    width,
+                    height,
+                    scale: 1,
+                },
+            },
+        ) as { data: string };
+
+        return `data:image/png;base64,${result.data}`;
+    }
+
 }

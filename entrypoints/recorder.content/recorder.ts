@@ -22,7 +22,6 @@ export class Recorder {
         if (isFromUIEvent(e)) return;
         const element = this.getEventElement(e);
         if (!element) return null;
-        // const lastAction = _recording[_recording.length - 1];
         const step = this.stepBuilder.buildStep('click', e, element);
         if (!step) return null;
         console.log("click step:", step);
@@ -34,11 +33,9 @@ export class Recorder {
       if (isFromUIEvent(e)) return;
       const element = this.getEventElement(e);
       if (!element) return null;
-      // const lastAction = _recording[_recording.length - 1];
       const step = this.stepBuilder.buildStep('input', e, element);
       if (!step) return null;
       console.log("input step:", step);
-      // _recording.push(step);
       await sendMessage("recordingStep", step);
     };
 

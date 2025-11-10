@@ -1,6 +1,10 @@
-import { ClickInfo, DragInfo, InputInfo, MouseWheelInfo } from "@/src/template";
+import { ClickInfo, DragInfo, InputInfo, KeydownInfo, MouseWheelInfo } from "@/src/template";
 
 export class StepAction {
+    // 特殊按键
+    async keydown(tabId: number, keydownInfo: KeydownInfo) {
+        
+    }
 
     // 拖拽
     async drag(tabId: number, dragInfo: DragInfo) {

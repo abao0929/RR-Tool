@@ -9,7 +9,7 @@ export class browserController {
     recordingWindowId: number | null;
     recordingTabId: number | null;
     recordingTabs: chrome.tabs.Tab[];
-
+    attachedTabs: Set<number> = new Set();
     constructor() {
         this.windowWidth = 1280;// 默认宽度
         this.windowHeight = 800;// 默认高度
@@ -18,6 +18,7 @@ export class browserController {
         this.recordingWindowId = null;
         this.recordingTabId = null;
         this.recordingTabs = [];
+        this.attachedTabs = new Set();
     }
 
     public async recordingInWindow(startUrl: string = "about:blank") {
@@ -174,13 +175,14 @@ export class browserController {
             console.log("[cm] updated chrome tab:", tab.url);
             return;
         }
-        else if (tab.windowId === this.recordingWindowId 
-            && changeInfo.status === "complete" 
+        else if (tab.windowId === this.recordingWindowId
             && tabId === this.recordingTabId
         ) {
+            if (changeInfo.status === "loading"){
                 await this.ensureInjected(tabId);
                 await this.attachDebugger(tabId);
                 await this.setRecorder(tabId, true);
+            }
         }
     }
 
@@ -238,6 +240,18 @@ export class browserController {
         } catch (e) {
             console.warn("[cm] attachDebugger failed:", e);
             return false;
+        }
+    }
+
+    async ensureDebuggerAttached(tabId: number) {
+        if (this.attachedTabs.has(tabId)) return;
+        try {
+            await chrome.debugger.attach({ tabId }, "1.3");
+            this.attachedTabs.add(tabId);
+        } catch (e) {
+            // 已经被别的调试器占用/无法附加时会报错
+            console.warn("[bg] attach fail", tabId, e);
+            throw e;
         }
     }
 }

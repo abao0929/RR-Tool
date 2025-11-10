@@ -1,10 +1,10 @@
 import { defineExtensionMessaging } from "@webext-core/messaging";
 import { StepInfo } from "./template";
-import { SystemState, SystemCommand } from "./template";
+import { SystemState, SystemCommand, RecordingMode } from "./template";
 
 export interface ProtocolMap {
   // system:从sidepanel发出的控制消息
-  systemControl(data: SystemCommand): { tabId: number | null; state: SystemState };
+  systemControl(data: { command: SystemCommand; mode: RecordingMode; url?: string }): { tabId: number | null; state: SystemState };
 
   // 开始录制
   startRecording(data: {}): { ok: boolean; tabId: number | null; state: string };
@@ -30,6 +30,10 @@ export interface ProtocolMap {
 
   
   tabChangeStep(data: StepInfo): {};
+
+  clearSteps(data: {}): {};
+  downloadTestFlow(data: {}): {};
+
 
   // replayer
 

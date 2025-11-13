@@ -36,6 +36,16 @@ export default defineBackground(() => {
                 // 更新state状态为：空闲
                 bkState = 'idle';
                 break;
+            case "start-replaying":
+                if (recorder.testFlow) 
+                    {
+                        console.log("start-replay");
+                        bkState = "replaying"
+                        await replayer.startReplay(recorder.testFlow);
+                        bkState = "idle";
+                    }
+                
+                break;
 
             // case "pause-recording":
             //     if (recordingTabId) recorder.finishRecording(recordingTabId);
@@ -63,5 +73,9 @@ export default defineBackground(() => {
 
     onMessage("downloadTestFlow", async () => {
         recorder.downloadTestFlow();
+    })
+    onMessage("uploadTestFlow", async (msg) => {
+        const { name, content } = msg.data;
+        return recorder.uploadTestFlow(content);
     })
 });

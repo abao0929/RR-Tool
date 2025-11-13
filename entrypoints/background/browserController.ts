@@ -6,18 +6,22 @@ export class browserController {
     windowHeight: number;
     windowPositionLeft: number;
     windowPositionTop: number;
+
     recordingWindowId: number | null;
     recordingTabId: number | null;
     recordingTabs: chrome.tabs.Tab[];
+    
     attachedTabs: Set<number> = new Set();
     constructor() {
         this.windowWidth = 1280;// 默认宽度
         this.windowHeight = 800;// 默认高度
         this.windowPositionLeft = 100;// 默认左侧位置
         this.windowPositionTop = 100;// 默认顶部位置
+
         this.recordingWindowId = null;
         this.recordingTabId = null;
         this.recordingTabs = [];
+
         this.attachedTabs = new Set();
     }
 
@@ -65,7 +69,7 @@ export class browserController {
      * @param type 窗口类型popup或normal，默认normal
      * @returns 创建的窗口对象
      */
-    private async createWindow(url: string = "about:blank", type: "popup" | "normal" = "normal"): Promise<chrome.windows.Window | undefined> {
+    async createWindow(url: string = "about:blank", type: "popup" | "normal" = "normal"): Promise<chrome.windows.Window | undefined> {
         const win = await chrome.windows.create({
             url,
             type,
@@ -78,7 +82,7 @@ export class browserController {
         return win;
     }
 
-    private async closeWindow(windowId: number) {
+    async closeWindow(windowId: number) {
         try {
             await chrome.windows.remove(windowId);
             console.log("[cm] closeWindow:", windowId);

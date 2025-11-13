@@ -4,16 +4,71 @@ import { Locator } from "@/src/template";
 import { StepInfo, TestFlow } from "@/src/template";
 import { waitOneNewRequestAndFinish } from "./wait";
 import { onMessage, sendMessage } from "@/src/messaging";
+import { browserController } from "../browserController";
 
 export class Replayer {
+    windowWidth: number;
+    windowHeight: number;
+    windowPositionLeft: number;
+    windowPositionTop: number;
+
     replayWindowId: number | null = null;
     replayTabs: chrome.tabs.Tab[] = [];
     currentReplayTab: chrome.tabs.Tab | null = null;
+
+    browserCtrl: browserController;
     constructor() {
+        this.windowWidth = 1280;// 默认宽度
+        this.windowHeight = 800;// 默认高度
+        this.windowPositionLeft = 100;// 默认左侧位置
+        this.windowPositionTop = 100;// 默认顶部位置
         this.replayWindowId = null;
         this.replayTabs = [];
         this.currentReplayTab = null;
+        this.browserCtrl = new browserController();
+    }
 
+    // 回放
+    async startReplay(testFlow: TestFlow) {
+        if (!testFlow) return;
+        console.log("[bg-replayer] replay start:", testFlow);
+        if (testFlow.mode === "tab") {
+            // 在当前tab中回放
+            await this.replayStepsInTab(testFlow);
+        }
+        else if (testFlow.mode === "window") {
+            // 创建新窗口回放
+            await this.replayStepsInWindow(testFlow);
+        }
+    }
+
+    /**
+     * 创建一个新的窗口
+     * @param url 初始打开的URL，默认about:blank
+     * @param type 窗口类型popup或normal，默认normal
+     * @returns 创建的窗口对象
+     */
+    async createWindow(url: string = "about:blank", type: "popup" | "normal" = "normal"): Promise<chrome.windows.Window | undefined> {
+        const win = await chrome.windows.create({
+            url,
+            type,
+            width: this.windowWidth,
+            height: this.windowHeight,
+            left: this.windowPositionLeft,
+            top: this.windowPositionTop
+        })
+        console.log("[replay] createWindow:", win);
+        return win;
+    }
+
+    async closeWindow() {
+        try {
+            
+            if (this.replayWindowId) await chrome.windows.remove(this.replayWindowId);
+            console.log("[replay] closeWindow:", this.replayWindowId);
+        } catch (e) {
+            console.error("[replay] closeWindow failed:", e);
+        }
     }
 
     async tryLocate(tabId: number, locators: Locator[]) {
@@ -57,36 +112,43 @@ export class Replayer {
         // console.log("[bg-replay]replay one step finish");
     }
 
-    async replayStepsInWindow(windowId: number, testFlow: TestFlow) {
-        if (!windowId || !testFlow || testFlow.steps.length === 0) return;
-        this.replayWindowId = windowId;
+    async replayStepsInWindow(testFlow: TestFlow) {
+        if ( !testFlow || testFlow.steps.length === 0) return;
+        // 创建一个回放窗口
+        const win = await this.createWindow(testFlow.originUrl);
+        if (win) this.replayWindowId = win.id ?? null;
+        // 回放
         const steps = testFlow.steps;
         for (const step of steps) {
+            console.log("[replay] replaying step:", steps.indexOf(step));
             // 获取当前活跃tabId
             const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
             const currentTab = tabs[0] ?? null;
             // 更新replayTabs列表
             this.replayTabs = tabs;
             // 检查&切换tab
-            if(step.url&&currentTab) {
+            if (step.url && currentTab) {
                 const tabMatched = await this.checkTabUrl(step.url, currentTab);
                 if (tabMatched && this.currentReplayTab) {
                     await this.replayOneStep(this.currentReplayTab, step, steps.indexOf(step));
                 }
             }
         }
+        console.log("[replay] replay finish");
+        await this.closeWindow();
 
     }
 
-    async replayStepsInTab(tab: chrome.tabs.Tab, testFlow: TestFlow) {
+    async replayStepsInTab(testFlow: TestFlow) {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         // 检查tab.url
         if (tab.url !== testFlow.originUrl) {
-            throw new Error ("tab.Url != testflow.originUrl");
+            throw new Error("tab.Url != testflow.originUrl");
             return;
         }
 
         const steps = testFlow.steps;
-        
+
         if (!tab) return;
         if (!tab.id || !steps || steps.length === 0) return;
         try {
@@ -118,7 +180,7 @@ export class Replayer {
         }
 
         try {
-            await chrome.debugger.detach({ tabId:tab.id });
+            await chrome.debugger.detach({ tabId: tab.id });
         } catch (e) {
             console.error("[bg] detach failed:", e);
         }
@@ -142,7 +204,7 @@ export class Replayer {
             }
             return false;
         }
-        
+
     }
 
 }

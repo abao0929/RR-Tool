@@ -2,11 +2,11 @@ import React, { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { createRoot } from 'react-dom/client';
 import { onMessage, sendMessage } from '@/src/messaging';
-import { Button, Space, List, Image, Modal, Collapse, Col, Row, Radio, Input, Badge, Card } from 'antd';
+import { Button, Space, Image, Modal, Collapse, Col, Row, Radio, Input, Badge, Card, Upload } from 'antd';
 import type { RadioChangeEvent } from 'antd';
 import { StepInfo, SystemCommand, SystemState, Modifiers, Locator, RecordingMode } from '@/src/template';
-import { FaPlayCircle, FaStopCircle, FaTrash, FaRegFolder, FaKeyboard, FaFileDownload } from 'react-icons/fa';
-import { BiCameraMovie } from "react-icons/bi";
+import { FaPlayCircle, FaStopCircle, FaRegFolder, FaKeyboard } from 'react-icons/fa';
+import { FcDownload, FcUpload, FcFullTrash } from "react-icons/fc";
 import { HiMiniVideoCamera } from "react-icons/hi2";
 import { ButtonColorType } from 'antd/es/button';
 import type { CheckboxGroupProps } from 'antd/es/checkbox';
@@ -289,24 +289,63 @@ function StepItem(stepInfo: StepInfo) {
 }
 
 function StepList() {
-    const { steps, clear } = useSteps();
+    const { steps, clear, set } = useSteps();
+    const handleBeforeUpload = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const content = String(reader.result ?? '');
+            try {
+
+                set(await sendMessage("uploadTestFlow", { name: file.name, content }));
+                console.log("[sp] uploadTestFlow sent", file.name);
+            } catch (error) {
+                console.error("[sp] uploadTestFlow failed", error);
+            }
+        };
+        reader.onerror = (e) => {
+            console.error("[sp] file reading error", e);
+        };
+        reader.readAsText(file);
+        return false;
+    }
     return (
-        <div style={{ padding: 8 }}>
+        <Row style={{ padding: 8 }}>
             {/* 清空按钮，but无background */}
-            <Button
+            <Col span = {2}>
+            <Button 
                 shape='circle'
                 variant='text'
                 color='default'
-                icon={<FaTrash />}
+                icon={<FcFullTrash />}
                 onClick={clear}
             />
+            </Col>
+            <Col offset={1} span={2}>
             <Button
+                shape = 'circle'
+                variant='text'
                 color = 'default'
                 onClick ={() => {
                     sendMessage("downloadTestFlow", {});
                 }}
-                icon={<FaFileDownload />}
+                icon={<FcDownload />}
             />
+            </Col>
+            <Col offset={1}>
+            <Upload
+                accept=".json"
+                beforeUpload={handleBeforeUpload}
+                showUploadList={false}
+            >
+                <Button
+                    shape='round'
+                    color='default'
+                    icon={<FcUpload />}
+                >
+                    Upload Test Flow
+                </Button>
+            </Upload>
+            </Col>
             {/* <List
                 dataSource={steps}
                 renderItem={(item) => (
@@ -320,7 +359,7 @@ function StepList() {
                     <StepItem key={index} {...step} />
                 ))}
             </Space>
-        </div>
+        </Row>
     )
 }
 

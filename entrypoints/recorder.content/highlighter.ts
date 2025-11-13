@@ -14,7 +14,7 @@ export class Highlighter {
             top: '0px',
             width: '0px',
             height: '0px',
-            background: 'rgba(255, 140, 197, 0.35)',
+            background: 'rgba(255, 140, 197, 0.20)',
             borderRadius: '4px',
             pointerEvents: 'none',
             zIndex: '2147483647',

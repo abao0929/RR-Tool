@@ -42,5 +42,12 @@ export default defineContentScript({
         // await ui.removeUi();
       }
     });
+
+    onMessage("addHighlighter", async (msg) => {
+      await highlighter.addHighlighter();
+    });
+    onMessage("removeHighlighter", async (msg) => {
+      await highlighter.removeHighlighter();
+    });
   },
 });

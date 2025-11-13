@@ -33,6 +33,10 @@ export interface ProtocolMap {
 
   clearSteps(data: {}): {};
   downloadTestFlow(data: {}): {};
+  uploadTestFlow(data: { name: string; content: string }): StepInfo[];
+
+  addHighlighter(data: {}): {};
+  removeHighlighter(data: {}): {};
 
 
   // replayer

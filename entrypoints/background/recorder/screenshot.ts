@@ -1,5 +1,6 @@
 import { ElementRect } from "../../../src/template.js";
 import { browserController } from "../browserController.js";
+import { sendMessage } from "../../../src/messaging.js";
 
 export class Screenshot {
     browserController: browserController;
@@ -116,7 +117,7 @@ export class Screenshot {
     }
 
     // 保存图片
-    async downloadDataUrl(dataUrl: string, filename: string) {
+    async downloadDataUrl(dataUrl: string) {
         if (!dataUrl) throw new Error("no screenshot");
         await chrome.downloads.download({
             url: dataUrl,
@@ -133,7 +134,7 @@ export class Screenshot {
         // 确保已附加调试器
 
         const { x, y, width, height } = rect;
-
+        // sendMessage("removeHighlighter", {}, tabId);
         const result = await chrome.debugger.sendCommand(
             { tabId },
             "Page.captureScreenshot",
@@ -149,7 +150,7 @@ export class Screenshot {
                 },
             },
         ) as { data: string };
-
+        // sendMessage("addHighlighter", {}, tabId);
         return `data:image/png;base64,${result.data}`;
     }
 

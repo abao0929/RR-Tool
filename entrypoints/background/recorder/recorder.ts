@@ -7,14 +7,14 @@ import { browserController } from "../browserController";
 export class Recorder {
     screenshot: Screenshot;
     recordingSteps: StepInfo[];
-    chromeManager: browserController;
+    browserController: browserController;
     recordingMode: RecordingMode;
     originUrl: string;
     testFlow: TestFlow | null = null;
     constructor() {
         this.screenshot = new Screenshot();
         this.recordingSteps = [];
-        this.chromeManager = new browserController();
+        this.browserController = new browserController();
         this.recordingMode = 'window';
         this.originUrl = "about:blank";
         this.testFlow = null;
@@ -26,12 +26,13 @@ export class Recorder {
         // 根据mode判断录制模式
         if (mode === "tab") {
             this.recordingMode = "tab";
-            await this.chromeManager.recordingInTab(tabId);
+            await this.browserController.recordingInTab(tabId);
         }
 
         else if (mode === "window") {
             this.recordingMode = "window";
-            await this.chromeManager.recordingInWindow(url);
+            this.originUrl = url;
+            await this.browserController.recordingInWindow(url);
         }
 
         else {
@@ -45,12 +46,12 @@ export class Recorder {
     }
 
     async finishRecording() {
-        if (this.recordingMode === "tab") await this.chromeManager.stopRecordingInTab();
-        else if (this.recordingMode === "window") await this.chromeManager.stopRecordingInWindow();
+        if (this.recordingMode === "tab") await this.browserController.stopRecordingInTab();
+        else if (this.recordingMode === "window") await this.browserController.stopRecordingInWindow();
         // 构建testFlow
         this.testFlow = this.bulidTestFlow(this.recordingSteps, this.originUrl, this.recordingMode)
         console.log("[bg-recorder] recorder stop");
-        return true;
+        return this.testFlow;
     }
 
     async recorderStep(tabId: number, stepInfo: StepInfo): Promise<boolean | undefined> {
@@ -208,7 +209,7 @@ export class Recorder {
     // 下载 TestFlow JSON 文件
     async downloadTestFlow() {
         const json = JSON.stringify(this.testFlow, null, 2);
-        
+
         // 直接使用 data URL，不需要 createObjectURL
         const dataUrl = `data:application/json;charset=utf-8,${encodeURIComponent(json)}`;
 
@@ -219,6 +220,18 @@ export class Recorder {
         });
 
         return downloadId;
+    }
+    async uploadTestFlow(content: string): Promise<StepInfo[]> {
+        try {
+            const testFlow: TestFlow = JSON.parse(content);
+            this.testFlow = testFlow;
+            this.recordingSteps = testFlow.steps;
+            console.log("[bg-recorder] uploadTestFlow success:", testFlow);
+            return this.recordingSteps;
+        } catch (e) {
+            console.error("[bg-recorder] uploadTestFlow failed:", e);
+            return [];
+        }
     }
 
     // 将 JSON 文件转为 TestFlow 接口

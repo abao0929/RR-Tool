@@ -7,7 +7,7 @@ This is my first project developing a browser extension; it’s a tool for autom
 
 RR-Tool 支持在页面上录制用户操作并生成可回放的测试流程（TestFlow）。
 支持的录制类型：点击、输入、键盘特殊按键、滚轮滚动、拖拽。
-<video controls src="assets/video-1.mp4" title="Title"></video>
+<video controls src="assets/video.mp4" title="Title"></video>
 
 ## 如何开始 how to start
 
